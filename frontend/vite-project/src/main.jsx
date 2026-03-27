@@ -12,7 +12,7 @@ function App() {
 
   useEffect(() => {
     const loadData = () => {
-      fetch("http://localhost:5000/news")
+      fetch("http://127.0.0.1:5000/news")
         .then((res) => res.json())
         .then((data) => {
           setNews(data);
@@ -20,7 +20,7 @@ function App() {
         })
         .catch((err) => setError(err.message));
 
-      fetch("http://localhost:5000/alerts")
+      fetch("http://127.0.0.1:5000/alerts")
         .then((res) => res.json())
         .then((data) => setAlerts(data))
         .catch((err) => setError(err.message));
@@ -58,17 +58,18 @@ function App() {
           display: "flex",
           gap: "20px",
           marginBottom: "20px",
+          marginTop: "10px",
         }}
       >
-        <div style={{ background: "#111", padding: "10px", borderRadius: "8px" }}>
+        <div style={{ background: "#111", padding: "10px 15px", borderRadius: "8px" }}>
           📰 News: <strong>{totalNews}</strong>
         </div>
 
-        <div style={{ background: "#111", padding: "10px", borderRadius: "8px" }}>
+        <div style={{ background: "#111", padding: "10px 15px", borderRadius: "8px" }}>
           🚨 Alerts: <strong>{totalAlerts}</strong>
         </div>
 
-        <div style={{ background: "#111", padding: "10px", borderRadius: "8px" }}>
+        <div style={{ background: "#111", padding: "10px 15px", borderRadius: "8px" }}>
           ⚙️ Status:{" "}
           <strong style={{ color: error ? "red" : "lightgreen" }}>
             {error ? "ERROR" : "OK"}
