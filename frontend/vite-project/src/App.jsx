@@ -63,32 +63,30 @@ function App() {
     boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
   };
 
-  const mapMarkers = [
-    {
-      name: "Suva, Fiji",
-      position: [-18.1416, 178.4419],
-      type: "Capital",
-      note: "Main monitoring point",
-    },
-    {
-      name: "Nadi, Fiji",
-      position: [-17.7765, 177.4358],
-      type: "Airport / West Fiji",
-      note: "Transport and tourism hub",
-    },
-    {
-      name: "Lautoka Port, Fiji",
-      position: [-17.6169, 177.4505],
-      type: "Port",
-      note: "Maritime monitoring point",
-    },
-    {
-      name: "Labasa, Fiji",
-      position: [-16.4332, 179.3645],
-      type: "North Fiji",
-      note: "Northern division watch area",
-    },
-  ];
+  const locationMap = {
+    suva: { name: "Suva", position: [-18.1416, 178.4419] },
+    nadi: { name: "Nadi", position: [-17.7765, 177.4358] },
+    lautoka: { name: "Lautoka Port", position: [-17.6169, 177.4505] },
+    labasa: { name: "Labasa", position: [-16.4332, 179.3645] },
+  };
+
+  const alertMarkers = alerts
+    .map((alert) => {
+      const text = alert.title.toLowerCase();
+
+      for (const key in locationMap) {
+        if (text.includes(key)) {
+          return {
+            ...locationMap[key],
+            risk: alert.risk,
+            title: alert.title,
+          };
+        }
+      }
+
+      return null;
+    })
+    .filter(Boolean);
 
   return (
     <div
@@ -127,21 +125,42 @@ function App() {
 
         <div style={cardStyle}>
           <div style={{ color: "#9ca3af", fontSize: "14px" }}>High Alerts</div>
-          <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#ff4d4f" }}>
+          <div
+            style={{
+              fontSize: "30px",
+              fontWeight: "bold",
+              marginTop: "6px",
+              color: "#ff4d4f",
+            }}
+          >
             {highCount}
           </div>
         </div>
 
         <div style={cardStyle}>
           <div style={{ color: "#9ca3af", fontSize: "14px" }}>Medium Alerts</div>
-          <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#faad14" }}>
+          <div
+            style={{
+              fontSize: "30px",
+              fontWeight: "bold",
+              marginTop: "6px",
+              color: "#faad14",
+            }}
+          >
             {mediumCount}
           </div>
         </div>
 
         <div style={cardStyle}>
           <div style={{ color: "#9ca3af", fontSize: "14px" }}>Low Alerts</div>
-          <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#52c41a" }}>
+          <div
+            style={{
+              fontSize: "30px",
+              fontWeight: "bold",
+              marginTop: "6px",
+              color: "#52c41a",
+            }}
+          >
             {lowCount}
           </div>
         </div>
@@ -194,14 +213,16 @@ function App() {
               attribution='&copy; OpenStreetMap contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {mapMarkers.map((marker, index) => (
+            {alertMarkers.map((marker, index) => (
               <Marker key={index} position={marker.position}>
                 <Popup>
                   <strong>{marker.name}</strong>
                   <br />
-                  {marker.type}
+                  <span style={{ color: marker.risk === "HIGH" ? "red" : "orange" }}>
+                    {marker.risk}
+                  </span>
                   <br />
-                  {marker.note}
+                  {marker.title}
                 </Popup>
               </Marker>
             ))}
