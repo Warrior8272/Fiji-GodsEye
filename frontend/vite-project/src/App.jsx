@@ -1,4 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 function App() {
   const [news, setNews] = useState([]);
@@ -53,6 +63,33 @@ function App() {
     boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
   };
 
+  const mapMarkers = [
+    {
+      name: "Suva, Fiji",
+      position: [-18.1416, 178.4419],
+      type: "Capital",
+      note: "Main monitoring point",
+    },
+    {
+      name: "Nadi, Fiji",
+      position: [-17.7765, 177.4358],
+      type: "Airport / West Fiji",
+      note: "Transport and tourism hub",
+    },
+    {
+      name: "Lautoka Port, Fiji",
+      position: [-17.6169, 177.4505],
+      type: "Port",
+      note: "Maritime monitoring point",
+    },
+    {
+      name: "Labasa, Fiji",
+      position: [-16.4332, 179.3645],
+      type: "North Fiji",
+      note: "Northern division watch area",
+    },
+  ];
+
   return (
     <div
       style={{
@@ -76,7 +113,7 @@ function App() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
           gap: "16px",
           marginBottom: "24px",
         }}
@@ -99,6 +136,13 @@ function App() {
           <div style={{ color: "#9ca3af", fontSize: "14px" }}>Medium Alerts</div>
           <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#faad14" }}>
             {mediumCount}
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <div style={{ color: "#9ca3af", fontSize: "14px" }}>Low Alerts</div>
+          <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#52c41a" }}>
+            {lowCount}
           </div>
         </div>
 
@@ -135,6 +179,34 @@ function App() {
             boxSizing: "border-box",
           }}
         />
+      </div>
+
+      <div style={{ ...cardStyle, marginBottom: "24px" }}>
+        <h2 style={{ marginTop: 0 }}>Fiji Monitoring Map</h2>
+        <div style={{ height: "420px", borderRadius: "12px", overflow: "hidden" }}>
+          <MapContainer
+            center={[-17.8, 178.1]}
+            zoom={6}
+            scrollWheelZoom={true}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer
+              attribution='&copy; OpenStreetMap contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {mapMarkers.map((marker, index) => (
+              <Marker key={index} position={marker.position}>
+                <Popup>
+                  <strong>{marker.name}</strong>
+                  <br />
+                  {marker.type}
+                  <br />
+                  {marker.note}
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        </div>
       </div>
 
       <div
