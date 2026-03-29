@@ -10,6 +10,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+const shipIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/68/68472.png",
+  iconSize: [25, 25],
+});
+
 function App() {
   const [news, setNews] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -63,30 +68,73 @@ function App() {
     boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
   };
 
-  const locationMap = {
-    suva: { name: "Suva", position: [-18.1416, 178.4419] },
-    nadi: { name: "Nadi", position: [-17.7765, 177.4358] },
-    lautoka: { name: "Lautoka Port", position: [-17.6169, 177.4505] },
-    labasa: { name: "Labasa", position: [-16.4332, 179.3645] },
-  };
-
   const alertMarkers = alerts
-    .map((alert) => {
-      const text = alert.title.toLowerCase();
+    .map((a) => {
+      const text = a.title.toLowerCase();
 
-      for (const key in locationMap) {
-        if (text.includes(key)) {
-          return {
-            ...locationMap[key],
-            risk: alert.risk,
-            title: alert.title,
-          };
-        }
+      if (text.includes("suva")) {
+        return {
+          name: "Suva",
+          position: [-18.1416, 178.4419],
+          risk: a.risk,
+          title: a.title,
+        };
+      }
+
+      if (text.includes("nadi")) {
+        return {
+          name: "Nadi",
+          position: [-17.7765, 177.4358],
+          risk: a.risk,
+          title: a.title,
+        };
+      }
+
+      if (text.includes("lautoka")) {
+        return {
+          name: "Lautoka",
+          position: [-17.6169, 177.4505],
+          risk: a.risk,
+          title: a.title,
+        };
+      }
+
+      if (text.includes("labasa")) {
+        return {
+          name: "Labasa",
+          position: [-16.4332, 179.3645],
+          risk: a.risk,
+          title: a.title,
+        };
+      }
+
+      if (text.includes("fiji")) {
+        const locations = [
+          [-18.1416, 178.4419],
+          [-17.7765, 177.4358],
+          [-17.6169, 177.4505],
+          [-16.4332, 179.3645],
+        ];
+        const randomLocation =
+          locations[Math.floor(Math.random() * locations.length)];
+
+        return {
+          name: "Fiji",
+          position: randomLocation,
+          risk: a.risk,
+          title: a.title,
+        };
       }
 
       return null;
     })
     .filter(Boolean);
+
+  const ships = [
+    { name: "Cargo Vessel", position: [-18.2, 178.3], type: "Cargo" },
+    { name: "Fishing Vessel", position: [-17.9, 177.8], type: "Fishing" },
+    { name: "Unknown Vessel", position: [-18.0, 178.0], type: "Unknown" },
+  ];
 
   return (
     <div
@@ -125,42 +173,21 @@ function App() {
 
         <div style={cardStyle}>
           <div style={{ color: "#9ca3af", fontSize: "14px" }}>High Alerts</div>
-          <div
-            style={{
-              fontSize: "30px",
-              fontWeight: "bold",
-              marginTop: "6px",
-              color: "#ff4d4f",
-            }}
-          >
+          <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#ff4d4f" }}>
             {highCount}
           </div>
         </div>
 
         <div style={cardStyle}>
           <div style={{ color: "#9ca3af", fontSize: "14px" }}>Medium Alerts</div>
-          <div
-            style={{
-              fontSize: "30px",
-              fontWeight: "bold",
-              marginTop: "6px",
-              color: "#faad14",
-            }}
-          >
+          <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#faad14" }}>
             {mediumCount}
           </div>
         </div>
 
         <div style={cardStyle}>
           <div style={{ color: "#9ca3af", fontSize: "14px" }}>Low Alerts</div>
-          <div
-            style={{
-              fontSize: "30px",
-              fontWeight: "bold",
-              marginTop: "6px",
-              color: "#52c41a",
-            }}
-          >
+          <div style={{ fontSize: "30px", fontWeight: "bold", marginTop: "6px", color: "#52c41a" }}>
             {lowCount}
           </div>
         </div>
@@ -202,19 +229,27 @@ function App() {
 
       <div style={{ ...cardStyle, marginBottom: "24px" }}>
         <h2 style={{ marginTop: 0 }}>Fiji Monitoring Map</h2>
-        <div style={{ height: "420px", borderRadius: "12px", overflow: "hidden" }}>
+        <div
+          style={{
+            position: "relative",
+            height: "420px",
+            borderRadius: "12px",
+            overflow: "hidden",
+          }}
+        >
           <MapContainer
             center={[-17.8, 178.1]}
-            zoom={6}
+            zoom={7}
             scrollWheelZoom={true}
             style={{ height: "100%", width: "100%" }}
           >
             <TileLayer
-              attribution='&copy; OpenStreetMap contributors'
+              attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+
             {alertMarkers.map((marker, index) => (
-              <Marker key={index} position={marker.position}>
+              <Marker key={`alert-${index}`} position={marker.position}>
                 <Popup>
                   <strong>{marker.name}</strong>
                   <br />
@@ -226,7 +261,53 @@ function App() {
                 </Popup>
               </Marker>
             ))}
+
+            {ships.map((ship, i) => (
+              <Marker key={`ship-${i}`} position={ship.position} icon={shipIcon}>
+                <Popup>
+                  🚢 <strong>{ship.name}</strong>
+                  <br />
+                  Type: {ship.type}
+                </Popup>
+              </Marker>
+            ))}
           </MapContainer>
+
+          <div
+            style={{
+              position: "absolute",
+              bottom: "20px",
+              right: "20px",
+              background: "#0b1220",
+              padding: "12px 16px",
+              borderRadius: "10px",
+              border: "1px solid #1f2937",
+              fontSize: "13px",
+              color: "#f9fafb",
+              zIndex: 1000,
+            }}
+          >
+            <div style={{ fontWeight: "bold", marginBottom: "6px" }}>Legend</div>
+
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "4px" }}>
+              <span style={{ width: "10px", height: "10px", background: "#ff4d4f", marginRight: "8px" }}></span>
+              High Alert
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "4px" }}>
+              <span style={{ width: "10px", height: "10px", background: "#faad14", marginRight: "8px" }}></span>
+              Medium Alert
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "4px" }}>
+              <span style={{ width: "10px", height: "10px", background: "#52c41a", marginRight: "8px" }}></span>
+              Low Alert
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center" }}>
+              🚢 Ships
+            </div>
+          </div>
         </div>
       </div>
 
