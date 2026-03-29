@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, LayersControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -13,6 +13,33 @@ L.Icon.Default.mergeOptions({
 const shipIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/68/68472.png",
   iconSize: [25, 25],
+});
+
+const redIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const orangeIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const greenIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
 });
 
 function App() {
@@ -58,6 +85,12 @@ function App() {
     if (risk === "HIGH") return "#ff4d4f";
     if (risk === "MEDIUM") return "#faad14";
     return "#52c41a";
+  };
+
+  const riskIcon = (risk) => {
+    if (risk === "HIGH") return redIcon;
+    if (risk === "MEDIUM") return orangeIcon;
+    return greenIcon;
   };
 
   const cardStyle = {
@@ -248,19 +281,43 @@ function App() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {alertMarkers.map((marker, index) => (
-              <Marker key={`alert-${index}`} position={marker.position}>
-                <Popup>
-                  <strong>{marker.name}</strong>
-                  <br />
-                  <span style={{ color: marker.risk === "HIGH" ? "red" : "orange" }}>
-                    {marker.risk}
-                  </span>
-                  <br />
-                  {marker.title}
-                </Popup>
-              </Marker>
-            ))}
+            <LayersControl position="topright">
+
+  <LayersControl.Overlay checked name="Alerts">
+    <>
+      {alertMarkers.map((marker, index) => (
+        <Marker
+          key={`alert-${index}`}
+          position={marker.position}
+          icon={riskIcon(marker.risk)}
+        >
+          <Popup>
+            <strong>{marker.name}</strong>
+            <br />
+            {marker.risk}
+            <br />
+            {marker.title}
+          </Popup>
+        </Marker>
+      ))}
+    </>
+  </LayersControl.Overlay>
+
+  <LayersControl.Overlay checked name="Ships">
+    <>
+      {ships.map((ship, i) => (
+        <Marker key={`ship-${i}`} position={ship.position} icon={shipIcon}>
+          <Popup>
+            🚢 <strong>{ship.name}</strong>
+            <br />
+            Type: {ship.type}
+          </Popup>
+        </Marker>
+      ))}
+    </>
+  </LayersControl.Overlay>
+
+</LayersControl>
 
             {ships.map((ship, i) => (
               <Marker key={`ship-${i}`} position={ship.position} icon={shipIcon}>
