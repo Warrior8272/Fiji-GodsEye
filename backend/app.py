@@ -1,132 +1,61 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
-import feedparser
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
 
-RSS_FEEDS = [
-    "https://www.rnz.co.nz/rss/pacific.xml",
-    "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
-]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-KEYWORDS = {
-    "fiji": "HIGH",
-    "suva": "HIGH",
-    "pacific": "MEDIUM",
-    "scam": "HIGH",
-    "fraud": "HIGH",
-    "cyber": "HIGH",
-    "attack": "HIGH",
-    "crime": "MEDIUM",
-    "arrest": "MEDIUM",
-    "drug": "HIGH",
-    "drugs": "HIGH",
-    "seizure": "HIGH",
-    "trafficking": "HIGH",
-    "port": "MEDIUM",
-    "airport": "MEDIUM",
-    "shipment": "MEDIUM",
-    "police": "LOW",
-    "court": "LOW",
-}
+@app.get("/")
+def home():
+    return {"status": "Backend running"}
 
-from flask import Flask, jsonify
-from flask_cors import CORS
-import feedparser
+@app.get("/api/ships")
+def get_ships():
+    return [
+        {"name": "Test Ship 1", "lat": -17.7, "lon": 178.0},
+        {"name": "Test Ship 2", "lat": -18.1, "lon": 178.4},
+    ]
 
-app = Flask(__name__)
-CORS(app)
+@app.get("/api/live-ships")
+def get_live_ships():
+    return [
+        {"name": "Cargo Vessel Alpha", "lat": -17.9, "lon": 178.2, "type": "cargo"},
+        {"name": "Fishing Vessel Beta", "lat": -18.2, "lon": 177.8, "type": "fishing"},
+        {"name": "Tanker Pacific", "lat": -17.5, "lon": 178.4, "type": "tanker"},
+    ]
 
-# 🌍 RSS feeds (Pacific + Asia)
-RSS_FEEDS = [
-    "https://www.rnz.co.nz/rss/pacific.xml",
-    "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
-]
-
-# 🚨 Keyword risk levels
-KEYWORDS = {
-    "fiji": "HIGH",
-    "suva": "HIGH",
-    "pacific": "MEDIUM",
-    "scam": "HIGH",
-    "fraud": "HIGH",
-    "cyber": "HIGH",
-    "attack": "HIGH",
-    "crime": "MEDIUM",
-    "arrest": "MEDIUM",
-    "drug": "HIGH",
-    "drugs": "HIGH",
-    "seizure": "HIGH",
-    "trafficking": "HIGH",
-    "port": "MEDIUM",
-    "airport": "MEDIUM",
-    "shipment": "MEDIUM",
-    "police": "LOW",
-    "court": "LOW",
-}
-
-# 📰 Get live news
-def get_live_news():
-    items = []
-
-    for feed_url in RSS_FEEDS:
-        feed = feedparser.parse(feed_url)
-
-        for entry in feed.entries[:15]:
-            items.append({
-                "title": entry.get("title", "No title"),
-                "url": entry.get("link", "#"),
-                "summary": entry.get("summary", "")
-            })
-
-    # 🔍 Fiji-focused filter
-    filtered = []
-    for item in items:
-        text = f"{item['title']} {item['summary']}".lower()
-
-        if any(word in text for word in ["fiji", "suva"]):
-            filtered.append(item)
-
-    return filtered[:20]
-
-# 🚨 Build alerts
-def build_alerts(news_items):
+@app.get("/api/alerts")
+def get_alerts():
+    ships = get_live_ships()
     alerts = []
 
-    for item in news_items:
-        text = f"{item.get('title', '')} {item.get('summary', '')}".lower()
+    for ship in ships:
+        ship_type = str(ship.get("type", "")).lower()
+        name = str(ship.get("name", "Unknown Vessel"))
 
-        for keyword, risk in KEYWORDS.items():
-            if keyword in text:
-                alerts.append({
-                    "keyword": keyword,
-                    "risk": risk,
-                    "title": item["title"],
-                    "url": item["url"]
-                })
+        if ship_type == "tanker":
+            alerts.append({
+                "title": f"Tanker detected: {name}",
+                "severity": "high",
+                "message": f"{name} is operating inside the monitored Fiji area.",
+            })
+        elif ship_type == "cargo":
+            alerts.append({
+                "title": f"Cargo vessel detected: {name}",
+                "severity": "medium",
+                "message": f"{name} is present in the monitored area.",
+            })
+        elif ship_type == "fishing":
+            alerts.append({
+                "title": f"Fishing vessel detected: {name}",
+                "severity": "low",
+                "message": f"{name} is active in the monitored area.",
+            })
 
     return alerts
-
-# 🏠 Home route
-@app.route("/")
-def home():
-    return jsonify({
-        "status": "ok",
-        "message": "God's Eye backend is running"
-    })
-
-# 📰 News route
-@app.route("/news")
-def news():
-    return jsonify(get_live_news())
-
-# 🚨 Alerts route
-@app.route("/alerts")
-def alerts():
-    news_items = get_live_news()
-    return jsonify(build_alerts(news_items))
-
-# ▶️ Run server
-if __name__ == "__main__":
-    app.run(debug=True, port=5000)
