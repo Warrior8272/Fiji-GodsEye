@@ -37,6 +37,7 @@ function App() {
   const [correlations, setCorrelations] = useState([]);
   const [filter, setFilter] = useState("all");
   const [replayStep, setReplayStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const WATCH_ZONE = [
     [-18.5, 177.5],
@@ -171,6 +172,11 @@ function App() {
     return "LOW";
   }, [totalThreatScore]);
 
+  const nationalThreatIndex = useMemo(() => {
+    const capped = Math.min(100, totalThreatScore * 3);
+    return capped;
+  }, [totalThreatScore]);
+
   const threatRadarStyle = useMemo(() => {
     if (overallThreatLevel === "HIGH") {
       return {
@@ -233,6 +239,19 @@ function App() {
     return max;
   }, [ships]);
 
+  useEffect(() => {
+    if (!isPlaying || maxReplayStep <= 0) return;
+
+    const timer = setInterval(() => {
+      setReplayStep((prev) => {
+        if (prev >= maxReplayStep) return 0;
+        return prev + 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isPlaying, maxReplayStep]);
+
   const replayShips = useMemo(() => {
     return filteredShips.map((ship) => {
       if (!Array.isArray(ship.history) || ship.history.length === 0) {
@@ -251,6 +270,13 @@ function App() {
     });
   }, [filteredShips, replayStep]);
 
+  const indexBarColor =
+    nationalThreatIndex >= 70
+      ? "#cc0000"
+      : nationalThreatIndex >= 40
+      ? "#cc7a00"
+      : "#2d862d";
+
   return (
     <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
       <h1>Fiji God’s Eye</h1>
@@ -258,7 +284,7 @@ function App() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(280px, 1fr))",
+          gridTemplateColumns: "repeat(3, minmax(260px, 1fr))",
           gap: "14px",
           marginBottom: "20px",
         }}
@@ -305,6 +331,39 @@ function App() {
           ) : (
             <p>No vessel data available.</p>
           )}
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: "10px",
+            padding: "16px",
+            backgroundColor: "#f8f8f8",
+          }}
+        >
+          <h2 style={{ marginTop: 0 }}>National Threat Index</h2>
+          <p style={{ fontSize: "22px", fontWeight: "bold", margin: "8px 0" }}>
+            {nationalThreatIndex}/100
+          </p>
+          <div
+            style={{
+              height: "18px",
+              backgroundColor: "#ddd",
+              borderRadius: "999px",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${nationalThreatIndex}%`,
+                height: "100%",
+                backgroundColor: indexBarColor,
+              }}
+            />
+          </div>
+          <p style={{ marginTop: "10px" }}>
+            Fiji-wide indicator based on vessel risk, cyber incidents, and correlations.
+          </p>
         </div>
       </div>
 
@@ -362,6 +421,7 @@ function App() {
         >
           <strong>{c.title}</strong>
           <p>{c.message}</p>
+          {c.priority !== undefined && <small>Priority: {c.priority}</small>}
         </div>
       ))}
 
@@ -385,8 +445,34 @@ function App() {
           max={maxReplayStep}
           value={replayStep}
           onChange={(e) => setReplayStep(Number(e.target.value))}
-          style={{ width: "100%" }}
+          style={{ width: "100%", marginBottom: "12px" }}
         />
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button onClick={() => setIsPlaying((prev) => !prev)}>
+            {isPlaying ? "Pause Replay" : "Play Replay"}
+          </button>
+          <button
+            onClick={() => setReplayStep((prev) => Math.max(0, prev - 1))}
+          >
+            Step Back
+          </button>
+          <button
+            onClick={() =>
+              setReplayStep((prev) => Math.min(maxReplayStep, prev + 1))
+            }
+          >
+            Step Forward
+          </button>
+          <button
+            onClick={() => {
+              setReplayStep(0);
+              setIsPlaying(false);
+            }}
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
       <div
