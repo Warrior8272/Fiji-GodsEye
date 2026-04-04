@@ -23,40 +23,10 @@ MAX_HISTORY = 5
 
 ship_positions = [
     {
-        "name": "Cargo Vessel Alpha",
+        "name": "Cargo Alpha",
         "type": "cargo",
         "routeSegments": [
-            [
-                [-23.5, -75.0],
-                [-23.0, -90.0],
-                [-22.0, -110.0],
-                [-21.0, -130.0],
-                [-20.0, -150.0],
-                [-19.0, -170.0],
-                [-18.5, -179.0],
-            ],
-            [
-                [-18.5, 179.0],
-                [-18.3, 178.8],
-                [-18.1, 178.5],
-                [-17.9, 178.2],
-            ],
-        ],
-        "index": 0,
-        "history": [],
-    },
-    {
-        "name": "Fishing Vessel Beta",
-        "type": "fishing",
-        "routeSegments": [
-            [
-                [-19.2, 175.0],
-                [-18.9, 175.8],
-                [-18.6, 176.5],
-                [-18.4, 177.1],
-                [-18.3, 177.5],
-                [-18.2, 177.8],
-            ]
+            [[-15.0, -120.0], [-16.0, -100.0], [-17.0, -80.0], [-18.0, 178.0]]
         ],
         "index": 0,
         "history": [],
@@ -65,22 +35,16 @@ ship_positions = [
         "name": "Tanker Pacific",
         "type": "tanker",
         "routeSegments": [
-            [
-                [-28.0, -78.0],
-                [-27.0, -95.0],
-                [-25.5, -115.0],
-                [-24.0, -135.0],
-                [-22.5, -155.0],
-                [-21.0, -172.0],
-                [-20.0, -179.0],
-            ],
-            [
-                [-20.0, 179.0],
-                [-19.2, 178.9],
-                [-18.5, 178.7],
-                [-17.9, 178.5],
-                [-17.5, 178.4],
-            ],
+            [[-20.0, -130.0], [-19.0, -110.0], [-18.0, -90.0], [-17.0, 178.0]]
+        ],
+        "index": 0,
+        "history": [],
+    },
+    {
+        "name": "Fishing Vessel Fiji",
+        "type": "fishing",
+        "routeSegments": [
+            [[-17.7, 177.9], [-17.8, 178.1], [-17.9, 178.3]]
         ],
         "index": 0,
         "history": [],
@@ -89,11 +53,10 @@ ship_positions = [
 
 
 def flatten_route_segments(route_segments):
-    all_points = []
+    points = []
     for segment in route_segments:
-        for point in segment:
-            all_points.append(point)
-    return all_points
+        points.extend(segment)
+    return points
 
 
 def is_inside_watch_zone(lat, lon):
@@ -115,35 +78,18 @@ def distance_to_zone_center(lat, lon):
     return math.sqrt((lat - center_lat) ** 2 + (lon - center_lon) ** 2)
 
 
-def detect_suspicious_behavior(ship):
-    history = ship.get("history", [])
+def detect_suspicious_behavior(ship_data):
+    history = ship_data.get("history", [])
     if len(history) < 3:
         return False
 
     last = history[-1]
     prev = history[-2]
-
     dx = last[1] - prev[1]
     dy = last[0] - prev[0]
 
     return abs(dx) > 1 or abs(dy) > 1
 
-def detect_correlation(ships, cyber_alerts):
-    correlations = []
-
-    for ship in ships:
-        if ship.get("inside_zone") and ship.get("threat_score", 0) >= 3:
-            for alert in cyber_alerts:
-                if alert["location"].lower() in ["suva", "nadi", "labasa"]:
-                    correlations.append({
-                        "title": "Correlated Threat Detected",
-                        "message": f"{ship['name']} near {alert['location']} with cyber activity",
-                        "severity": "high",
-                        "ship": ship["name"],
-                        "location": alert["location"]
-                    })
-
-    return correlations
 
 def calculate_eta(ship, target_lat=-17.8, target_lon=178.0):
     dx = target_lon - ship["lon"]
@@ -154,8 +100,7 @@ def calculate_eta(ship, target_lat=-17.8, target_lon=178.0):
     if speed == 0:
         return "Unknown"
 
-    eta_hours = distance / speed
-    return round(eta_hours, 2)
+    return round(distance / speed, 2)
 
 
 def calculate_threat_score(ship):
@@ -214,20 +159,6 @@ def home():
     return {"status": "Backend running"}
 
 
-@app.get("/api/ships")
-def get_ships():
-    return [
-        {"name": "Test Ship 1", "lat": -17.7, "lon": 178.0},
-        {"name": "Test Ship 2", "lat": -18.1, "lon": 178.4},
-    ]
-
-@app.get("/api/correlations")
-def get_correlations():
-    ships = get_live_ships()
-    cyber = get_cyber_alerts()
-
-    return detect_correlation(ships, cyber)
-
 @app.get("/api/live-ships")
 def get_live_ships():
     output = []
@@ -281,7 +212,6 @@ def get_live_ships():
 def get_alerts():
     ships = get_live_ships()
     alerts = []
-    ships_in_zone = 0
 
     for ship in ships:
         lat = ship["lat"]
@@ -290,9 +220,6 @@ def get_alerts():
         name = ship["name"]
         status = ship.get("status", "outside zone")
         in_zone = is_inside_watch_zone(lat, lon)
-
-        if in_zone:
-            ships_in_zone += 1
 
         if in_zone:
             alerts.append({
@@ -314,16 +241,6 @@ def get_alerts():
                 "risk_score": ship["threat_score"],
             })
 
-        if ship_type == "unknown":
-            alerts.append({
-                "title": f"Unknown vessel detected: {name}",
-                "message": f"{name} has no recognised vessel type classification.",
-                "severity": "medium",
-                "ship": name,
-                "type": ship_type,
-                "risk_score": ship["threat_score"],
-            })
-
         if ship.get("origin") == "south_america":
             alerts.append({
                 "title": f"High-risk origin: {name}",
@@ -334,30 +251,10 @@ def get_alerts():
                 "risk_score": ship["threat_score"],
             })
 
-        if ship_type == "cargo" and in_zone:
-            alerts.append({
-                "title": f"Cargo vessel in zone: {name}",
-                "message": f"{name} is a cargo vessel inside the monitored zone.",
-                "severity": "medium",
-                "ship": name,
-                "type": ship_type,
-                "risk_score": ship["threat_score"],
-            })
-
         if status == "approaching zone":
             alerts.append({
                 "title": f"Approaching zone: {name}",
                 "message": f"{name} is moving toward the Fiji watch zone.",
-                "severity": "medium",
-                "ship": name,
-                "type": ship_type,
-                "risk_score": ship["threat_score"],
-            })
-
-        if status == "loitering":
-            alerts.append({
-                "title": f"Possible loitering: {name}",
-                "message": f"{name} has shown limited movement in recent tracking history.",
                 "severity": "medium",
                 "ship": name,
                 "type": ship_type,
@@ -374,46 +271,67 @@ def get_alerts():
                 "risk_score": ship["threat_score"],
             })
 
-    if ships_in_zone >= 2:
-        alerts.append({
-            "title": "Cluster alert",
-            "message": f"{ships_in_zone} vessels are currently inside the Fiji monitoring zone.",
-            "severity": "high" if ships_in_zone >= 3 else "medium",
-            "ship": "multiple",
-            "type": "cluster",
-            "risk_score": ships_in_zone,
-        })
+    return alerts
+
 
 @app.get("/api/cyber-alerts")
 def get_cyber_alerts():
     return [
         {
             "title": "Phishing campaign targeting Fiji banking users",
-            "category": "phishing",
+            "message": "Multiple reports of fake banking login pages targeting users in Suva.",
             "severity": "high",
+            "category": "phishing",
+            "location": "Suva",
             "lat": -18.1416,
             "lon": 178.4419,
-            "location": "Suva",
-            "message": "Multiple reports of fake banking login pages targeting users in Suva.",
+            "heat": 9,
         },
         {
             "title": "Suspicious login attempts against government portal",
-            "category": "intrusion",
-            "severity": "medium",
-            "lat": -17.6169,
-            "lon": 177.4505,
-            "location": "Nadi",
             "message": "Repeated login attempts detected against a public-facing portal.",
+            "severity": "medium",
+            "category": "intrusion",
+            "location": "Nadi",
+            "lat": -17.7765,
+            "lon": 177.4357,
+            "heat": 6,
         },
         {
             "title": "Scam investment pages shared on social media",
-            "category": "scam",
-            "severity": "medium",
-            "lat": -16.7800,
-            "lon": 179.3400,
-            "location": "Labasa",
             "message": "Fraudulent investment links circulating across public social channels.",
+            "severity": "medium",
+            "category": "scam",
+            "location": "Labasa",
+            "lat": -16.4332,
+            "lon": 179.3645,
+            "heat": 5,
         },
     ]
 
-    return alerts
+
+def detect_correlation(ships, cyber_alerts):
+    correlations = []
+
+    for ship in ships:
+        for alert in cyber_alerts:
+            location_match = alert["location"].lower() in ["suva", "nadi", "labasa"]
+            high_risk_ship = ship.get("threat_score", 0) >= 3
+            inside_zone = ship.get("inside_zone")
+
+            if location_match and (high_risk_ship or inside_zone):
+                correlations.append({
+                    "title": "Correlated Threat Detected",
+                    "message": f"{ship['name']} ({ship['type']}) near {alert['location']} during {alert['category']} activity",
+                    "severity": "high",
+                    "priority": ship.get("threat_score", 0) + (2 if alert["severity"] == "high" else 1),
+                })
+
+    return correlations
+
+
+@app.get("/api/correlations")
+def get_correlations():
+    ships = get_live_ships()
+    cyber = get_cyber_alerts()
+    return detect_correlation(ships, cyber)
