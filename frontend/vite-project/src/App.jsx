@@ -7,6 +7,7 @@ import {
   Polyline,
   Rectangle,
   Circle,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -30,6 +31,50 @@ const redIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+const dangerIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [35, 55],
+  iconAnchor: [17, 55],
+  popupAnchor: [1, -40],
+  shadowSize: [50, 50],
+});
+
+function FocusHighestRisk({ ship }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (ship && ship.lat !== undefined && ship.lon !== undefined) {
+      map.setView([ship.lat, ship.lon], 7, { animate: true });
+    }
+  }, [ship, map]);
+
+  return null;
+}
+
+function getLabelStyle(label) {
+  const l = String(label || "").toLowerCase();
+
+  if (l.includes("drug") || l.includes("priority")) {
+    return { backgroundColor: "#ff4d4f", color: "white" };
+  }
+
+  if (l.includes("suspicious") || l.includes("cyber")) {
+    return { backgroundColor: "#fa8c16", color: "white" };
+  }
+
+  if (l.includes("tanker")) {
+    return { backgroundColor: "#722ed1", color: "white" };
+  }
+
+  if (l.includes("zone") || l.includes("cargo")) {
+    return { backgroundColor: "#52c41a", color: "white" };
+  }
+
+  return { backgroundColor: "#d9d9d9", color: "black" };
+}
+
 function App() {
   const [ships, setShips] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -38,6 +83,7 @@ function App() {
   const [filter, setFilter] = useState("all");
   const [replayStep, setReplayStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [autoFocusDanger, setAutoFocusDanger] = useState(true);
 
   const WATCH_ZONE = [
     [-18.5, 177.5],
@@ -145,15 +191,54 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredShips =
-    filter === "all" ? ships : ships.filter((s) => s.type === filter);
+  const filteredShips = useMemo(() => {
+    return filter === "all" ? ships : ships.filter((s) => s.type === filter);
+  }, [ships, filter]);
+
+  const maxReplayStep = useMemo(() => {
+    let max = 0;
+    ships.forEach((ship) => {
+      if (Array.isArray(ship.history) && ship.history.length - 1 > max) {
+        max = ship.history.length - 1;
+      }
+    });
+    return max;
+  }, [ships]);
+
+  useEffect(() => {
+    if (!isPlaying || maxReplayStep <= 0) return;
+
+    const timer = setInterval(() => {
+      setReplayStep((prev) => (prev >= maxReplayStep ? 0 : prev + 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isPlaying, maxReplayStep]);
+
+  const replayShips = useMemo(() => {
+    return filteredShips.map((ship) => {
+      if (!Array.isArray(ship.history) || ship.history.length === 0) {
+        return ship;
+      }
+
+      const safeIndex = Math.min(replayStep, ship.history.length - 1);
+      const [lat, lon] = ship.history[safeIndex];
+
+      return {
+        ...ship,
+        lat,
+        lon,
+        replayHistory: ship.history.slice(0, safeIndex + 1),
+      };
+    });
+  }, [filteredShips, replayStep]);
 
   const highestRiskShip = useMemo(() => {
-    if (!ships.length) return null;
-    return [...ships].sort(
+    if (!replayShips.length) return null;
+    return [...replayShips].sort(
       (a, b) => (b.threat_score || 0) - (a.threat_score || 0)
     )[0];
-  }, [ships]);
+  }, [replayShips]);
 
   const totalThreatScore = useMemo(() => {
     const shipScore = ships.reduce((sum, ship) => sum + (ship.threat_score || 0), 0);
@@ -173,31 +258,8 @@ function App() {
   }, [totalThreatScore]);
 
   const nationalThreatIndex = useMemo(() => {
-    const capped = Math.min(100, totalThreatScore * 3);
-    return capped;
+    return Math.min(100, totalThreatScore * 3);
   }, [totalThreatScore]);
-
-  const threatRadarStyle = useMemo(() => {
-    if (overallThreatLevel === "HIGH") {
-      return {
-        backgroundColor: "#990000",
-        color: "white",
-        border: "2px solid #ff4d4d",
-      };
-    }
-    if (overallThreatLevel === "MEDIUM") {
-      return {
-        backgroundColor: "#996300",
-        color: "white",
-        border: "2px solid #ffcc66",
-      };
-    }
-    return {
-      backgroundColor: "#1f5c1f",
-      color: "white",
-      border: "2px solid #66cc66",
-    };
-  }, [overallThreatLevel]);
 
   const timelineEvents = useMemo(() => {
     const events = [];
@@ -229,47 +291,6 @@ function App() {
     return events.sort((a, b) => b.priority - a.priority);
   }, [ships, cyberAlerts, correlations]);
 
-  const maxReplayStep = useMemo(() => {
-    let max = 0;
-    ships.forEach((ship) => {
-      if (Array.isArray(ship.history) && ship.history.length - 1 > max) {
-        max = ship.history.length - 1;
-      }
-    });
-    return max;
-  }, [ships]);
-
-  useEffect(() => {
-    if (!isPlaying || maxReplayStep <= 0) return;
-
-    const timer = setInterval(() => {
-      setReplayStep((prev) => {
-        if (prev >= maxReplayStep) return 0;
-        return prev + 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isPlaying, maxReplayStep]);
-
-  const replayShips = useMemo(() => {
-    return filteredShips.map((ship) => {
-      if (!Array.isArray(ship.history) || ship.history.length === 0) {
-        return ship;
-      }
-
-      const safeIndex = Math.min(replayStep, ship.history.length - 1);
-      const [lat, lon] = ship.history[safeIndex];
-
-      return {
-        ...ship,
-        lat,
-        lon,
-        replayHistory: ship.history.slice(0, safeIndex + 1),
-      };
-    });
-  }, [filteredShips, replayStep]);
-
   const indexBarColor =
     nationalThreatIndex >= 70
       ? "#cc0000"
@@ -291,7 +312,19 @@ function App() {
       >
         <div
           style={{
-            ...threatRadarStyle,
+            backgroundColor:
+              overallThreatLevel === "HIGH"
+                ? "#990000"
+                : overallThreatLevel === "MEDIUM"
+                ? "#996300"
+                : "#1f5c1f",
+            color: "white",
+            border:
+              overallThreatLevel === "HIGH"
+                ? "2px solid #ff4d4d"
+                : overallThreatLevel === "MEDIUM"
+                ? "2px solid #ffcc66"
+                : "2px solid #66cc66",
             padding: "16px",
             borderRadius: "10px",
           }}
@@ -309,13 +342,13 @@ function App() {
 
         <div
           style={{
-            border: "1px solid #ccc",
+            border: "2px solid #cc0000",
             borderRadius: "10px",
             padding: "16px",
-            backgroundColor: "#f8f8f8",
+            backgroundColor: "#fff5f5",
           }}
         >
-          <h2 style={{ marginTop: 0 }}>Highest-Risk Vessel</h2>
+          <h2 style={{ marginTop: 0, color: "#990000" }}>Most Dangerous Ship</h2>
           {highestRiskShip ? (
             <>
               <p style={{ fontSize: "18px", fontWeight: "bold", margin: "8px 0" }}>
@@ -327,6 +360,37 @@ function App() {
                 Threat: {highestRiskShip.threat_level} ({highestRiskShip.threat_score})
               </p>
               <p style={{ margin: "4px 0" }}>ETA: {highestRiskShip.eta_hours} hrs</p>
+
+              {Array.isArray(highestRiskShip.threat_labels) &&
+                highestRiskShip.threat_labels.length > 0 && (
+                  <div style={{ marginTop: "8px" }}>
+                    {highestRiskShip.threat_labels.map((label, i) => (
+                      <span
+                        key={`danger-label-${i}`}
+                        style={{
+                          ...getLabelStyle(label),
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          marginRight: "6px",
+                          marginBottom: "6px",
+                          fontSize: "12px",
+                          display: "inline-block",
+                        }}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+              <label style={{ display: "block", marginTop: "10px" }}>
+                <input
+                  type="checkbox"
+                  checked={autoFocusDanger}
+                  onChange={(e) => setAutoFocusDanger(e.target.checked)}
+                />{" "}
+                Auto-focus on danger ship
+              </label>
             </>
           ) : (
             <p>No vessel data available.</p>
@@ -365,6 +429,82 @@ function App() {
             Fiji-wide indicator based on vessel risk, cyber incidents, and correlations.
           </p>
         </div>
+      </div>
+
+      <h2>Timeline Replay</h2>
+      <div
+        style={{
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+          padding: "12px",
+          marginBottom: "12px",
+          backgroundColor: "#f8f8f8",
+        }}
+      >
+        <label htmlFor="replay-slider" style={{ display: "block", marginBottom: "8px" }}>
+          Replay Step: {replayStep} / {maxReplayStep}
+        </label>
+        <input
+          id="replay-slider"
+          type="range"
+          min="0"
+          max={maxReplayStep}
+          value={replayStep}
+          onChange={(e) => setReplayStep(Number(e.target.value))}
+          style={{ width: "100%", marginBottom: "12px" }}
+        />
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button onClick={() => setIsPlaying((prev) => !prev)}>
+            {isPlaying ? "Pause Replay" : "Play Replay"}
+          </button>
+          <button onClick={() => setReplayStep((prev) => Math.max(0, prev - 1))}>
+            Step Back
+          </button>
+          <button
+            onClick={() => setReplayStep((prev) => Math.min(maxReplayStep, prev + 1))}
+          >
+            Step Forward
+          </button>
+          <button
+            onClick={() => {
+              setReplayStep(0);
+              setIsPlaying(false);
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+          padding: "12px",
+          marginBottom: "20px",
+          backgroundColor: "#f8f8f8",
+          maxHeight: "220px",
+          overflowY: "auto",
+        }}
+      >
+        {timelineEvents.length === 0 ? (
+          <p>No timeline events available.</p>
+        ) : (
+          timelineEvents.map((event, i) => (
+            <div
+              key={`timeline-${i}`}
+              style={{
+                padding: "8px 0",
+                borderBottom: "1px solid #ddd",
+              }}
+            >
+              <strong>{event.type.toUpperCase()}</strong>
+              <div>{event.text}</div>
+              <small>Priority: {event.priority}</small>
+            </div>
+          ))
+        )}
       </div>
 
       <h2>Alerts</h2>
@@ -425,86 +565,6 @@ function App() {
         </div>
       ))}
 
-      <h2>Timeline Replay</h2>
-      <div
-        style={{
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-          padding: "12px",
-          marginBottom: "12px",
-          backgroundColor: "#f8f8f8",
-        }}
-      >
-        <label htmlFor="replay-slider" style={{ display: "block", marginBottom: "8px" }}>
-          Replay Step: {replayStep} / {maxReplayStep}
-        </label>
-        <input
-          id="replay-slider"
-          type="range"
-          min="0"
-          max={maxReplayStep}
-          value={replayStep}
-          onChange={(e) => setReplayStep(Number(e.target.value))}
-          style={{ width: "100%", marginBottom: "12px" }}
-        />
-
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <button onClick={() => setIsPlaying((prev) => !prev)}>
-            {isPlaying ? "Pause Replay" : "Play Replay"}
-          </button>
-          <button
-            onClick={() => setReplayStep((prev) => Math.max(0, prev - 1))}
-          >
-            Step Back
-          </button>
-          <button
-            onClick={() =>
-              setReplayStep((prev) => Math.min(maxReplayStep, prev + 1))
-            }
-          >
-            Step Forward
-          </button>
-          <button
-            onClick={() => {
-              setReplayStep(0);
-              setIsPlaying(false);
-            }}
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-          padding: "12px",
-          marginBottom: "20px",
-          backgroundColor: "#f8f8f8",
-          maxHeight: "220px",
-          overflowY: "auto",
-        }}
-      >
-        {timelineEvents.length === 0 ? (
-          <p>No timeline events available.</p>
-        ) : (
-          timelineEvents.map((event, i) => (
-            <div
-              key={`timeline-${i}`}
-              style={{
-                padding: "8px 0",
-                borderBottom: "1px solid #ddd",
-              }}
-            >
-              <strong>{event.type.toUpperCase()}</strong>
-              <div>{event.text}</div>
-              <small>Priority: {event.priority}</small>
-            </div>
-          ))
-        )}
-      </div>
-
       <select
         onChange={(e) => setFilter(e.target.value)}
         value={filter}
@@ -521,8 +581,9 @@ function App() {
         zoom={6}
         style={{ height: "520px", marginTop: "20px" }}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {autoFocusDanger && highestRiskShip && <FocusHighestRisk ship={highestRiskShip} />}
 
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Rectangle bounds={WATCH_ZONE} pathOptions={{ color: "red" }} />
 
         {(Array.isArray(cyberAlerts) ? cyberAlerts : []).map((alert, i) => {
@@ -549,45 +610,86 @@ function App() {
           );
         })}
 
-        {replayShips.map((ship, index) => (
-          <div key={`ship-${index}`}>
-            <Marker
-              position={[ship.lat, ship.lon]}
-              icon={isInsideZone(ship) ? redIcon : blueIcon}
-            >
-              <Popup>
-                <strong>{ship.name}</strong>
-                <br />
-                Type: {ship.type}
-                <br />
-                Status: {ship.status}
-                <br />
-                Threat: {ship.threat_level} ({ship.threat_score})
-                <br />
-                ETA: {ship.eta_hours} hrs
-              </Popup>
-            </Marker>
+        {replayShips.map((ship, index) => {
+          const isDanger = highestRiskShip && ship.name === highestRiskShip.name;
 
-            {Array.isArray(ship.routeSegments) &&
-              ship.routeSegments.map((segment, i) => (
+          return (
+            <div key={`ship-${index}`}>
+              <Marker
+                position={[ship.lat, ship.lon]}
+                icon={isDanger ? dangerIcon : isInsideZone(ship) ? redIcon : blueIcon}
+              >
+                <Popup>
+                  <strong>{ship.name}</strong>
+                  <br />
+                  Type: {ship.type}
+                  <br />
+                  Status: {ship.status}
+                  <br />
+                  Threat: {ship.threat_level} ({ship.threat_score})
+                  <br />
+                  ETA: {ship.eta_hours} hrs
+
+                  {Array.isArray(ship.threat_labels) && ship.threat_labels.length > 0 && (
+                    <>
+                      <br />
+                      <div style={{ marginTop: "6px" }}>
+                        {ship.threat_labels.map((label, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              ...getLabelStyle(label),
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              marginRight: "6px",
+                              marginBottom: "6px",
+                              fontSize: "12px",
+                              display: "inline-block",
+                            }}
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {isDanger && (
+                    <>
+                      <br />
+                      <span style={{ color: "#990000", fontWeight: "bold" }}>
+                        ⚠️ Highest-Risk Vessel
+                      </span>
+                    </>
+                  )}
+                </Popup>
+              </Marker>
+
+              {Array.isArray(ship.routeSegments) &&
+                ship.routeSegments.map((segment, i) => (
+                  <Polyline
+                    key={`route-${index}-${i}`}
+                    positions={segment}
+                    pathOptions={{
+                      color: ship.type === "tanker" ? "red" : "blue",
+                      weight: isDanger ? 5 : 3,
+                    }}
+                  />
+                ))}
+
+              {Array.isArray(ship.replayHistory) && ship.replayHistory.length > 1 && (
                 <Polyline
-                  key={`route-${index}-${i}`}
-                  positions={segment}
+                  positions={ship.replayHistory}
                   pathOptions={{
-                    color: ship.type === "tanker" ? "red" : "blue",
-                    weight: 3,
+                    color: isDanger ? "#990000" : "orange",
+                    dashArray: "6,6",
+                    weight: isDanger ? 6 : 4,
                   }}
                 />
-              ))}
-
-            {Array.isArray(ship.replayHistory) && ship.replayHistory.length > 1 && (
-              <Polyline
-                positions={ship.replayHistory}
-                pathOptions={{ color: "orange", dashArray: "6,6", weight: 4 }}
-              />
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
 
         {(Array.isArray(cyberAlerts) ? cyberAlerts : []).map((alert, i) => (
           <Marker
@@ -613,24 +715,50 @@ function App() {
       </MapContainer>
 
       <h2 style={{ marginTop: "20px" }}>Tracked Ships</h2>
-      {replayShips.map((ship, i) => (
-        <div
-          key={`ship-card-${i}`}
-          style={{
-            border: "1px solid #ccc",
-            padding: "12px",
-            marginBottom: "10px",
-            borderRadius: "8px",
-          }}
-        >
-          <h3>{ship.name}</h3>
-          <p>Type: {ship.type}</p>
-          <p>Status: {ship.status}</p>
-          <p>Threat: {ship.threat_level}</p>
-          <p>ETA: {ship.eta_hours} hrs</p>
-          <p>{isInsideZone(ship) ? "Inside Watch Zone" : "Outside Watch Zone"}</p>
-        </div>
-      ))}
+      {replayShips.map((ship, i) => {
+        const isDanger = highestRiskShip && ship.name === highestRiskShip.name;
+
+        return (
+          <div
+            key={`ship-card-${i}`}
+            style={{
+              border: isDanger ? "2px solid #cc0000" : "1px solid #ccc",
+              backgroundColor: isDanger ? "#fff5f5" : "white",
+              padding: "12px",
+              marginBottom: "10px",
+              borderRadius: "8px",
+            }}
+          >
+            <h3>{ship.name}</h3>
+            <p>Type: {ship.type}</p>
+            <p>Status: {ship.status}</p>
+            <p>Threat: {ship.threat_level}</p>
+            <p>ETA: {ship.eta_hours} hrs</p>
+            <p>{isInsideZone(ship) ? "Inside Watch Zone" : "Outside Watch Zone"}</p>
+
+            {Array.isArray(ship.threat_labels) && ship.threat_labels.length > 0 && (
+              <div style={{ marginTop: "6px" }}>
+                {ship.threat_labels.map((label, idx) => (
+                  <span
+                    key={`card-label-${idx}`}
+                    style={{
+                      ...getLabelStyle(label),
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      marginRight: "6px",
+                      marginBottom: "6px",
+                      fontSize: "12px",
+                      display: "inline-block",
+                    }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
