@@ -53,8 +53,8 @@ function FocusLocation({ location }) {
 function App() {
   const [ships, setShips] = useState([]);
   const [cyberAlerts, setCyberAlerts] = useState([]);
-  const [correlations, setCorrelations] = useState([]);
   const [basemap, setBasemap] = useState("esri");
+  const [correlations, setCorrelations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(
     investigationLocations[0]
   );
@@ -86,13 +86,13 @@ function App() {
       } catch {
         setCyberAlerts([]);
       }
-
+      
       try {
         const corrRes = await fetch("http://127.0.0.1:8000/api/correlations");
         const corrData = await corrRes.json();
         setCorrelations(Array.isArray(corrData) ? corrData : []);
       } catch {
-        setCorrelations([]);
+       setCorrelations([]);
       }
     };
 
@@ -100,6 +100,24 @@ function App() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const renderBasemap = () => {
+    if (basemap === "osm") {
+      return (
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap contributors"
+        />
+      );
+    }
+
+    return (
+      <TileLayer
+        url="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        attribution="Source: Esri"
+      />
+    );
+  };
 
   const getStatusStyle = (status) => {
     if (status === "Escalated") {
@@ -115,13 +133,13 @@ function App() {
   };
 
   const getSeverityStyle = (severity) => {
-    if ((severity || "").toLowerCase() === "high") {
+    if (severity === "high") {
       return {
         backgroundColor: "#ffcccc",
         border: "1px solid #cc0000",
       };
     }
-    if ((severity || "").toLowerCase() === "medium") {
+    if (severity === "medium") {
       return {
         backgroundColor: "#fff3cd",
         border: "1px solid #cc7a00",
@@ -140,15 +158,12 @@ function App() {
     if (verification === "osint") {
       return { backgroundColor: "#fa8c16", color: "white" };
     }
-    if (verification === "simulation") {
-      return { backgroundColor: "#d9d9d9", color: "black" };
-    }
-    return { backgroundColor: "#f0f0f0", color: "black" };
+    return { backgroundColor: "#d9d9d9", color: "black" };
   };
 
   const distanceKm = (lat1, lon1, lat2, lon2) => {
     const toRad = (deg) => (deg * Math.PI) / 180;
-    const r = 6371;
+    const R = 6371;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
 
@@ -160,20 +175,11 @@ function App() {
         Math.sin(dLon / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return r * c;
+    return R * c;
   };
 
   const shipsInZone = useMemo(() => {
     return ships.filter((ship) => {
-      if (
-        ship?.lat === undefined ||
-        ship?.lon === undefined ||
-        selectedLocation?.lat === undefined ||
-        selectedLocation?.lon === undefined
-      ) {
-        return false;
-      }
-
       const d = distanceKm(
         selectedLocation.lat,
         selectedLocation.lon,
@@ -192,15 +198,6 @@ function App() {
 
   const cyberAlertsInZone = useMemo(() => {
     return cyberAlerts.filter((alert) => {
-      if (
-        alert?.lat === undefined ||
-        alert?.lon === undefined ||
-        selectedLocation?.lat === undefined ||
-        selectedLocation?.lon === undefined
-      ) {
-        return false;
-      }
-
       const d = distanceKm(
         selectedLocation.lat,
         selectedLocation.lon,
@@ -231,11 +228,9 @@ function App() {
       (sum, ship) => sum + (ship.threat_score || 0),
       0
     );
-
     const cyberRisk = cyberAlertsInZone.reduce((sum, alert) => {
-      const sev = (alert.severity || "").toLowerCase();
-      if (sev === "high") return sum + 4;
-      if (sev === "medium") return sum + 2;
+      if (alert.severity === "high") return sum + 4;
+      if (alert.severity === "medium") return sum + 2;
       return sum + 1;
     }, 0);
 
@@ -307,7 +302,7 @@ function App() {
       );
       await audio.play();
     } catch {
-      // ignored
+      // ignore autoplay issues
     }
   };
 
@@ -320,7 +315,7 @@ function App() {
     const shouldTrigger =
       overallZoneRisk === "HIGH" ||
       highRiskShipsInZone.length > 0 ||
-      cyberAlertsInZone.some((a) => (a.severity || "").toLowerCase() === "high") ||
+      cyberAlertsInZone.some((a) => a.severity === "high") ||
       openPhishAlertsInZone.length > 0;
 
     if (!shouldTrigger) return;
@@ -344,7 +339,7 @@ function App() {
   ]);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ padding: "20px", fontFamily: "Arial" }}>
       <h1>Fiji God’s Eye</h1>
 
       <div
@@ -355,13 +350,7 @@ function App() {
           marginBottom: "20px",
         }}
       >
-        <div
-          style={{
-            border: "1px solid #ccc",
-            padding: "10px",
-            borderRadius: "8px",
-          }}
-        >
+        <div style={{ border: "1px solid #ccc", padding: "10px", borderRadius: "8px" }}>
           <h2>Investigation Setup</h2>
 
           <label>Case Title</label>
@@ -413,13 +402,7 @@ function App() {
           </div>
         </div>
 
-        <div
-          style={{
-            border: "1px solid #ccc",
-            padding: "10px",
-            borderRadius: "8px",
-          }}
-        >
+        <div style={{ border: "1px solid #ccc", padding: "10px", borderRadius: "8px" }}>
           <h2>Case Notes</h2>
           <textarea
             value={caseNotes}
@@ -542,7 +525,7 @@ function App() {
       <MapContainer
         center={[-17.8, 178]}
         zoom={6}
-        style={{ height: "500px", marginBottom: "20px" }}
+        style={{ height: "500px" }}
       >
         <FocusLocation location={selectedLocation} />
 
@@ -580,8 +563,8 @@ function App() {
             center={[alert.lat, alert.lon]}
             radius={alert.source === "openphish" ? 6500 : 5000}
             pathOptions={{
-              color: (alert.severity || "").toLowerCase() === "high" ? "red" : "orange",
-              fillColor: (alert.severity || "").toLowerCase() === "high" ? "red" : "orange",
+              color: alert.severity === "high" ? "red" : "orange",
+              fillColor: alert.severity === "high" ? "red" : "orange",
               fillOpacity: alert.source === "openphish" ? 0.28 : 0.2,
             }}
           >
@@ -600,7 +583,7 @@ function App() {
               <br />
               Verification: {alert.verification || "unknown"}
               <br />
-              {alert.ioc ? (
+              {alert.ioc && (
                 <>
                   IOC:
                   <br />
@@ -609,7 +592,7 @@ function App() {
                   </a>
                   <br />
                 </>
-              ) : null}
+              )}
               {alert.message}
             </Popup>
           </Circle>
@@ -689,78 +672,81 @@ function App() {
                     {alert.verification || "unknown"}
                   </span>
                 </div>
-                {alert.ioc ? (
+                {alert.ioc && (
                   <div style={{ marginTop: "6px", wordBreak: "break-all" }}>
                     IOC:{" "}
                     <a href={alert.ioc} target="_blank" rel="noreferrer">
                       {alert.ioc}
                     </a>
                   </div>
-                ) : null}
+                )}
               </div>
             ))
           )}
-        </div>
-      </div>
+        </div
+        
+        <div
+  style={{
+    border: "1px solid #ccc",
+    padding: "12px",
+    borderRadius: "8px",
+    marginTop: "20px",
+  }}
+>
+  <h2>Correlated Threat Intelligence</h2>
 
+  {correlations.length === 0 ? (
+    <p>No correlations detected.</p>
+  ) : (
+    correlations.map((c, i) => (
       <div
+        key={i}
         style={{
-          border: "1px solid #ccc",
-          padding: "12px",
+          marginBottom: "10px",
+          padding: "10px",
           borderRadius: "8px",
-          marginTop: "20px",
+          backgroundColor:
+            c.correlation_confidence === "HIGH"
+              ? "#ffcccc"
+              : c.correlation_confidence === "MEDIUM"
+              ? "#fff3cd"
+              : "#f6ffed",
+          border: "1px solid #ccc",
         }}
       >
-        <h2>Correlated Threat Intelligence</h2>
+        <strong>{c.title}</strong>
 
-        {correlations.length === 0 ? (
-          <p>No correlations detected.</p>
-        ) : (
-          correlations.map((c, i) => (
-            <div
-              key={i}
-              style={{
-                marginBottom: "10px",
-                padding: "10px",
-                borderRadius: "8px",
-                backgroundColor:
-                  c.correlation_confidence === "HIGH"
-                    ? "#ffcccc"
-                    : c.correlation_confidence === "MEDIUM"
-                    ? "#fff3cd"
-                    : "#f6ffed",
-                border: "1px solid #ccc",
-              }}
-            >
-              <strong>{c.title}</strong>
-              <div>{c.message}</div>
-              <div>
-                <strong>Confidence:</strong> {c.correlation_confidence}
-              </div>
-              <div>
-                <strong>Priority Score:</strong> {c.priority}
-              </div>
-              <div>
-                <strong>Distance:</strong> {c.distance_km} km
-              </div>
-              <div>
-                <strong>Ship:</strong> {c.ship_name} ({c.ship_type})
-              </div>
-              <div>
-                <strong>Ship Risk Score:</strong> {c.ship_risk_score}
-              </div>
-              <div>
-                <strong>Alert Source:</strong> {c.alert_source}
-              </div>
-              <div>
-                <strong>Verification:</strong> {c.alert_verification}
-              </div>
-            </div>
-          ))
-        )}
+        <div>{c.message}</div>
+
+        <div>
+          <strong>Confidence:</strong> {c.correlation_confidence}
+        </div>
+
+        <div>
+          <strong>Priority Score:</strong> {c.priority}
+        </div>
+
+        <div>
+          <strong>Distance:</strong> {c.distance_km} km
+        </div>
+
+        <div>
+          <strong>Ship:</strong> {c.ship_name} ({c.ship_type})
+        </div>
+
+        <div>
+          <strong>Ship Risk Score:</strong> {c.ship_risk_score}
+        </div>
+
+        <div>
+          <strong>Alert Source:</strong> {c.alert_source}
+        </div>
+
+        <div>
+          <strong>Verification:</strong> {c.alert_verification}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }  
 
 export default App;
