@@ -1,696 +1,604 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import os
-import json
+from flask import Flask, jsonify
+from flask_cors import CORS
+from datetime import datetime, timezone
 import math
-import asyncio
-import threading
-import requests
-import websockets
 
-app = FastAPI()
+app = Flask(__name__)
+CORS(app)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-WATCH_ZONE = {
-    "minLat": -18.5,
-    "maxLat": -17.5,
-    "minLon": 177.5,
-    "maxLon": 178.5,
-}
+# --------------------------------------------------
+# HELPERS
+# --------------------------------------------------
 
-AISSTREAM_API_KEY = os.getenv("AISSTREAM_API_KEY", "").strip()
+def utc_now():
+    return datetime.now(timezone.utc).isoformat()
 
-live_ais_ships = []
-live_ais_lock = threading.Lock()
 
-SIM_SHIPS = [
-    {
-        "name": "Cargo Alpha",
-        "lat": -17.9,
-        "lon": 178.3,
-        "type": "cargo",
-        "status": "moving",
-        "history": [[-17.5, 178.0], [-17.7, 178.2], [-17.9, 178.3]],
-        "routeSegments": [[[-15.0, -120.0], [-18.0, 178.0]]],
-        "inside_zone": True,
-        "origin": "south_america",
-        "suspicious": False,
-        "source": "simulation",
-        "speed": 12.0,
-        "entry_count": 2,
-    },
-    {
-        "name": "Tanker Pacific",
-        "lat": -17.8,
-        "lon": 178.1,
-        "type": "tanker",
-        "status": "inside zone",
-        "history": [[-18.2, 178.0], [-18.0, 178.1], [-17.8, 178.1]],
-        "routeSegments": [[[-20.0, -130.0], [-17.0, 178.0]]],
-        "inside_zone": True,
-        "origin": "south_america",
-        "suspicious": True,
-        "source": "simulation",
-        "speed": 8.0,
-        "entry_count": 3,
-    },
-    {
-        "name": "Fishing Vessel Fiji",
-        "lat": -17.7,
-        "lon": 177.9,
-        "type": "fishing",
-        "status": "moving",
-        "history": [[-17.6, 177.8], [-17.7, 177.85], [-17.7, 177.9]],
-        "routeSegments": [[[-17.6, 177.8], [-17.7, 177.9]]],
-        "inside_zone": True,
-        "origin": "local",
-        "suspicious": False,
-        "source": "simulation",
-        "speed": 5.0,
-        "entry_count": 1,
-    },
-]
+def safe_lower(value):
+    return str(value).lower() if value is not None else ""
 
 
-def is_inside_watch_zone(lat: float, lon: float) -> bool:
-    return (
-        WATCH_ZONE["minLat"] <= lat <= WATCH_ZONE["maxLat"]
-        and WATCH_ZONE["minLon"] <= lon <= WATCH_ZONE["maxLon"]
-    )
-
-
-def calculate_eta_hours(lat: float, lon: float, target_lat=-17.8, target_lon=178.0):
-    dx = target_lon - lon
-    dy = target_lat - lat
-    distance = math.sqrt(dx**2 + dy**2)
-    speed = 0.5
-    if speed == 0:
-        return "Unknown"
-    return round(distance / speed, 2)
-
-
-def score_to_level(score: int) -> str:
-    if score >= 8:
-        return "HIGH"
-    if score >= 4:
-        return "MEDIUM"
-    return "LOW"
-
-
-def classify_ship_type(ship_name: str) -> str:
-    name = ship_name.lower()
-    if "tanker" in name:
-        return "tanker"
-    if "cargo" in name:
-        return "cargo"
-    if "fish" in name:
-        return "fishing"
-    return "unknown"
-
-
-def detect_loitering(history):
-    if not history or len(history) < 3:
-        return False
-
-    lats = [p[0] for p in history[-5:]]
-    lons = [p[1] for p in history[-5:]]
-    lat_spread = max(lats) - min(lats)
-    lon_spread = max(lons) - min(lons)
-
-    return lat_spread < 0.03 and lon_spread < 0.03
-
-
-def unusual_speed(speed, ship_type):
-    if speed is None:
-        return False
-
-    if ship_type == "fishing" and speed > 18:
-        return True
-    if ship_type in ["cargo", "tanker"] and speed > 25:
-        return True
-    if speed < 0.5:
-        return True
-    return False
-
-
-def calculate_threat_score(ship: dict) -> int:
-    score = 0
-
-    if ship["type"] == "tanker":
-        score += 3
-    elif ship["type"] == "cargo":
-        score += 2
-    elif ship["type"] == "fishing":
-        score += 1
-
-    if ship.get("inside_zone"):
-        score += 2
-
-    if ship.get("origin") == "south_america":
-        score += 3
-
-    if ship.get("suspicious"):
-        score += 2
-
-    if ship.get("loitering"):
-        score += 2
-
-    if ship.get("unusual_speed"):
-        score += 2
-
-    if ship.get("entry_count", 0) >= 2:
-        score += 1
-
-    if ship.get("source") == "aisstream":
-        score += 1
-
-    return score
-
-
-def fetch_openphish_feed(limit=25):
-    url = "https://openphish.com/feed.txt"
-    try:
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        lines = [line.strip() for line in resp.text.splitlines() if line.strip()]
-    except Exception as exc:
-        print(f"OpenPhish fetch failed: {exc}")
-        return []
-
-    alerts = []
-    fiji_targets = [
-        ("fiji", -18.1416, 178.4419, "Suva"),
-        ("suva", -18.1416, 178.4419, "Suva"),
-        ("nadi", -17.7765, 177.4357, "Nadi"),
-        ("labasa", -16.4332, 179.3645, "Labasa"),
-        ("westpac", -18.1416, 178.4419, "Suva"),
-        ("anz", -18.1416, 178.4419, "Suva"),
-        ("bsp", -18.1416, 178.4419, "Suva"),
-        ("vodafone", -18.1416, 178.4419, "Suva"),
-        ("mytsp", -18.1416, 178.4419, "Suva"),
-        ("gov", -18.1416, 178.4419, "Suva"),
-        (".fj", -18.1416, 178.4419, "Suva"),
-    ]
-
-    for phish_url in lines[:limit]:
-        matched = None
-        lower_url = phish_url.lower()
-        for keyword, lat, lon, location in fiji_targets:
-            if keyword in lower_url:
-                matched = (lat, lon, location)
-                break
-
-        # If no Fiji keyword match, still surface a few as generic regional OSINT.
-        if matched:
-            lat, lon, location = matched
-            severity = "high"
-            confidence = "medium"
-            message = f"OpenPhish feed matched Fiji-related keyword in URL: {phish_url}"
-        else:
-            lat, lon, location = -18.1416, 178.4419, "Suva"
-            severity = "medium"
-            confidence = "low"
-            message = f"OpenPhish active phishing URL observed; geotagged as regional OSINT lead: {phish_url}"
-
-        alerts.append({
-            "title": "OpenPhish phishing alert",
-            "message": message,
-            "severity": severity,
-            "category": "phishing",
-            "location": location,
-            "lat": lat,
-            "lon": lon,
-            "heat": 8 if severity == "high" else 5,
-            "source": "openphish",
-            "confidence": confidence,
-            "ioc": phish_url,
-            "verification": "osint",
-        })
-
-    return alerts
-
-
-def get_cyber_alerts_data():
-    static_alerts = [
-        {
-            "title": "Phishing campaign targeting Fiji banking users",
-            "message": "Multiple reports of fake banking login pages targeting users in Suva.",
-            "severity": "high",
-            "category": "phishing",
-            "location": "Suva",
-            "lat": -18.1416,
-            "lon": 178.4419,
-            "heat": 9,
-            "source": "simulation",
-            "confidence": "training",
-            "verification": "simulation",
-        },
-        {
-            "title": "Suspicious login attempts against government portal",
-            "message": "Repeated login attempts detected against a public-facing portal.",
-            "severity": "medium",
-            "category": "intrusion",
-            "location": "Nadi",
-            "lat": -17.7765,
-            "lon": 177.4357,
-            "heat": 6,
-            "source": "simulation",
-            "confidence": "training",
-            "verification": "simulation",
-        },
-        {
-            "title": "Scam investment pages shared on social media",
-            "message": "Fraudulent investment links circulating across public social channels.",
-            "severity": "medium",
-            "category": "scam",
-            "location": "Labasa",
-            "lat": -16.4332,
-            "lon": 179.3645,
-            "heat": 5,
-            "source": "simulation",
-            "confidence": "training",
-            "verification": "simulation",
-        },
-    ]
-
-    openphish_alerts = fetch_openphish_feed(limit=20)
-    return static_alerts + openphish_alerts
-
-
-def build_threat_labels(ship: dict, cyber_alerts: list) -> list[str]:
-    labels = []
-
-    if ship.get("source") == "aisstream":
-        labels.append("Live AIS")
-
-    if ship.get("origin") == "south_america":
-        labels.append("Drug trafficking risk")
-
-    if ship.get("suspicious"):
-        labels.append("Suspicious route")
-
-    if ship.get("inside_zone"):
-        labels.append("Inside watch zone")
-
-    if ship.get("type") == "tanker":
-        labels.append("High-value tanker")
-
-    if ship.get("type") == "cargo":
-        labels.append("Cargo monitoring priority")
-
-    if ship.get("loitering"):
-        labels.append("Loitering behaviour")
-
-    if ship.get("unusual_speed"):
-        labels.append("Unusual speed")
-
-    if ship.get("entry_count", 0) >= 2:
-        labels.append("Repeated zone entry")
-
-    matched_locations = {"suva", "nadi", "labasa"}
-    if ship.get("inside_zone") and any(
-        alert.get("location", "").lower() in matched_locations for alert in cyber_alerts
-    ):
-        labels.append("Cyber-linked area")
-
-    if ship.get("threat_level") == "HIGH":
-        labels.append("Priority target")
-
-    return labels
-
-
-def enrich_ship(ship: dict) -> dict:
-    cyber_alerts = get_cyber_alerts_data()
-    ship_copy = dict(ship)
-
-    ship_copy["inside_zone"] = is_inside_watch_zone(ship_copy["lat"], ship_copy["lon"])
-    ship_copy["loitering"] = detect_loitering(ship_copy.get("history", []))
-    ship_copy["unusual_speed"] = unusual_speed(ship_copy.get("speed"), ship_copy.get("type"))
-    ship_copy["threat_score"] = calculate_threat_score(ship_copy)
-    ship_copy["threat_level"] = score_to_level(ship_copy["threat_score"])
-    ship_copy["eta_hours"] = calculate_eta_hours(ship_copy["lat"], ship_copy["lon"])
-    ship_copy["threat_labels"] = build_threat_labels(ship_copy, cyber_alerts)
-
-    return ship_copy
-
-
-def normalize_live_ship(msg: dict):
-    lat = msg.get("Latitude")
-    lon = msg.get("Longitude")
-    mmsi = msg.get("UserID")
-    speed = msg.get("Sog")
-
-    if lat is None or lon is None or mmsi is None:
-        return None
-
-    name = f"Live-{mmsi}"
-    ship_type = classify_ship_type(name)
-
-    ship = {
-        "name": name,
-        "lat": float(lat),
-        "lon": float(lon),
-        "type": ship_type,
-        "status": "live",
-        "history": [[float(lat), float(lon)]],
-        "routeSegments": [],
-        "origin": "live",
-        "suspicious": False,
-        "source": "aisstream",
-        "speed": float(speed or 0),
-        "entry_count": 1,
+def severity_rank(severity: str) -> int:
+    ranking = {
+        "critical": 4,
+        "high": 3,
+        "medium": 2,
+        "low": 1,
     }
+    return ranking.get((severity or "").lower(), 0)
 
-    return enrich_ship(ship)
 
+def distance_km(lat1, lng1, lat2, lng2):
+    r = 6371.0
 
-async def aisstream_listener():
-    if not AISSTREAM_API_KEY:
-        print("AISSTREAM_API_KEY not set, using simulation only.")
-        return
+    lat1_rad = math.radians(lat1)
+    lng1_rad = math.radians(lng1)
+    lat2_rad = math.radians(lat2)
+    lng2_rad = math.radians(lng2)
 
-    uri = "wss://stream.aisstream.io/v0/stream"
-
-    while True:
-        try:
-            async with websockets.connect(uri, ping_interval=20, ping_timeout=20) as websocket:
-                subscribe_message = {
-                    "APIKey": AISSTREAM_API_KEY,
-                    "BoundingBoxes": [[[-25.0, 160.0], [-10.0, 190.0]]]
-                }
-
-                await websocket.send(json.dumps(subscribe_message))
-                print("Connected to AISStream.")
-
-                while True:
-                    raw_message = await websocket.recv()
-                    data = json.loads(raw_message)
-
-                    message = data.get("Message", {})
-                    position_report = message.get("PositionReport")
-                    if not position_report:
-                        continue
-
-                    ship = normalize_live_ship(position_report)
-                    if not ship:
-                        continue
-
-                    with live_ais_lock:
-                        existing_index = next(
-                            (i for i, s in enumerate(live_ais_ships) if s["name"] == ship["name"]),
-                            None,
-                        )
-
-                        if existing_index is not None:
-                            old_ship = live_ais_ships[existing_index]
-                            old_history = old_ship.get("history", [])
-                            old_history.append([ship["lat"], ship["lon"]])
-
-                            old_entry_count = old_ship.get("entry_count", 1)
-                            previously_inside = old_ship.get("inside_zone", False)
-                            now_inside = is_inside_watch_zone(ship["lat"], ship["lon"])
-
-                            if now_inside and not previously_inside:
-                                old_entry_count += 1
-
-                            ship["history"] = old_history[-10:]
-                            ship["entry_count"] = old_entry_count
-                            ship = enrich_ship(ship)
-                            live_ais_ships[existing_index] = ship
-                        else:
-                            live_ais_ships.append(ship)
-
-                        if len(live_ais_ships) > 50:
-                            del live_ais_ships[:-50]
-
-        except Exception as exc:
-            print(f"AISStream connection error: {exc}")
-            await asyncio.sleep(5)
-
-
-def start_aisstream_background():
-    def runner():
-        asyncio.run(aisstream_listener())
-
-    thread = threading.Thread(target=runner, daemon=True)
-    thread.start()
-
-
-start_aisstream_background()
-
-
-def get_live_ships_data():
-    with live_ais_lock:
-      live_copy = [dict(ship) for ship in live_ais_ships]
-
-    if live_copy:
-        return live_copy + [enrich_ship(ship) for ship in SIM_SHIPS]
-
-    return [enrich_ship(ship) for ship in SIM_SHIPS]
-
-
-@app.get("/")
-def home():
-    return {"status": "Backend running"}
-
-
-@app.get("/api/live-ships")
-def get_live_ships():
-    return get_live_ships_data()
-
-
-@app.get("/api/alerts")
-def get_alerts():
-    ships = get_live_ships_data()
-    alerts = []
-
-    for ship in ships:
-        if ship["inside_zone"]:
-            alerts.append({
-                "title": f"Zone entry detected: {ship['name']}",
-                "message": f"{ship['name']} is operating inside the Fiji watch zone.",
-                "severity": "medium",
-                "type": ship["type"],
-                "risk_score": ship["threat_score"],
-            })
-
-        if ship["threat_level"] == "HIGH":
-            alerts.append({
-                "title": f"High Threat Vessel: {ship['name']}",
-                "message": f"Threat score {ship['threat_score']} - ETA {ship['eta_hours']} hrs",
-                "severity": "high",
-                "type": ship["type"],
-                "risk_score": ship["threat_score"],
-            })
-
-    return alerts
-
-
-@app.get("/api/cyber-alerts")
-def get_cyber_alerts():
-    return get_cyber_alerts_data()
-
-
-def severity_score(severity: str) -> int:
-    sev = (severity or "").lower()
-    if sev == "high":
-        return 4
-    if sev == "medium":
-        return 2
-    return 1
-
-
-def source_score(source: str) -> int:
-    src = (source or "").lower()
-    if src == "openphish":
-        return 3
-    if src == "simulation":
-        return 1
-    return 2
-
-
-def location_match_score(ship: dict, alert: dict) -> int:
-    ship_lat = ship.get("lat")
-    ship_lon = ship.get("lon")
-    alert_lat = alert.get("lat")
-    alert_lon = alert.get("lon")
-
-    if None in [ship_lat, ship_lon, alert_lat, alert_lon]:
-        return 0
-
-    distance = distance_km(ship_lat, ship_lon, alert_lat, alert_lon)
-
-    if distance <= 10:
-        return 4
-    if distance <= 25:
-        return 3
-    if distance <= 50:
-        return 2
-    if distance <= 100:
-        return 1
-    return 0
-
-
-def time_proximity_score(ship: dict, alert: dict) -> int:
-    # Placeholder for now until you add timestamps to all feeds.
-    # Gives live AIS and live OSINT feeds more weight than simulation.
-    ship_source = (ship.get("source") or "").lower()
-    alert_verification = (alert.get("verification") or "").lower()
-    alert_source = (alert.get("source") or "").lower()
-
-    score = 0
-
-    if ship_source == "aisstream":
-        score += 2
-    elif ship_source == "simulation":
-        score += 1
-
-    if alert_source == "openphish":
-        score += 2
-    elif alert_verification == "simulation":
-        score += 1
-
-    return score
-
-
-def correlation_level(score: int) -> str:
-    if score >= 12:
-        return "HIGH"
-    if score >= 8:
-        return "MEDIUM"
-    return "LOW"
-
-def severity_score(severity: str) -> int:
-    sev = (severity or "").lower()
-    if sev == "high":
-        return 4
-    if sev == "medium":
-        return 2
-    return 1
-
-
-def source_score(source: str) -> int:
-    src = (source or "").lower()
-    if src == "openphish":
-        return 3
-    if src == "simulation":
-        return 1
-    return 2
-
-
-def location_match_score(ship: dict, alert: dict) -> int:
-    ship_lat = ship.get("lat")
-    ship_lon = ship.get("lon")
-    alert_lat = alert.get("lat")
-    alert_lon = alert.get("lon")
-
-    if None in [ship_lat, ship_lon, alert_lat, alert_lon]:
-        return 0
-
-    distance = distance_km(ship_lat, ship_lon, alert_lat, alert_lon)
-
-    if distance <= 10:
-        return 4
-    if distance <= 25:
-        return 3
-    if distance <= 50:
-        return 2
-    if distance <= 100:
-        return 1
-    return 0
-
-
-def time_proximity_score(ship: dict, alert: dict) -> int:
-    # Placeholder for now until you add timestamps to all feeds.
-    # Gives live AIS and live OSINT feeds more weight than simulation.
-    ship_source = (ship.get("source") or "").lower()
-    alert_verification = (alert.get("verification") or "").lower()
-    alert_source = (alert.get("source") or "").lower()
-
-    score = 0
-
-    if ship_source == "aisstream":
-        score += 2
-    elif ship_source == "simulation":
-        score += 1
-
-    if alert_source == "openphish":
-        score += 2
-    elif alert_verification == "simulation":
-        score += 1
-
-    return score
-
-
-def correlation_level(score: int) -> str:
-    if score >= 12:
-        return "HIGH"
-    if score >= 8:
-        return "MEDIUM"
-    return "LOW"
-
-
-def distance_km(lat1, lon1, lat2, lon2):
-    def to_rad(deg):
-        return deg * math.pi / 180
-
-    r = 6371
-    dlat = to_rad(lat2 - lat1)
-    dlon = to_rad(lon2 - lon1)
+    dlat = lat2_rad - lat1_rad
+    dlng = lng2_rad - lng1_rad
 
     a = (
         math.sin(dlat / 2) ** 2
-        + math.cos(to_rad(lat1))
-        * math.cos(to_rad(lat2))
-        * math.sin(dlon / 2) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlng / 2) ** 2
     )
-
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return r * c
 
+# ROUTE HELPERS
 
-def detect_correlation(ships, cyber_alerts):
+def km_per_degree_lat():
+    return 111.0 
+
+def km_per_degree_lng(lat):
+    return 111.0 * math.cos(math.radians(lat))
+
+def project_position(lat, lng, course_deg, speed_knots, hours):
+
+    if None in (lat, lng, course_deg, speed_knots):
+        return None
+
+    distance_km_total = speed_knots * 1.852 * hours
+
+    course_rad = math.radians(course_deg)
+ 
+    north_km = math.cos(course_rad) * distance_km_total
+    east_km = math.sin(course_rad) * distance_km_total
+
+    new_lat = + (north_km / 111.0)
+
+    new_lng = lng + (east_km / (111.0 * math.radians(lat)))
+
+    return {"lat": round(new_lat,4), "lng": round(new_lng,4)}
+
+def infer_origin_zone(lat, lng):
+
+    if lat is None or lng is None:
+        return "unknown"
+
+    if lat < -25:
+        return "deep south pacific"
+
+    if lat < -21:
+        return "south pacific corridor"
+
+    if lat < -19:
+        return "southern approach"
+
+    return "near fiji waters"
+
+def score_alert(alert):
+    score = 0
+
+    severity = safe_lower(alert.get("severity"))
+    category = safe_lower(alert.get("category"))
+    title = safe_lower(alert.get("title"))
+    description = safe_lower(alert.get("description"))
+    region = safe_lower(alert.get("region"))
+
+    score += {
+        "critical": 100,
+        "high": 75,
+        "medium": 50,
+        "low": 25,
+    }.get(severity, 0)
+
+    if category == "phishing":
+        score += 15
+    elif category == "cyber":
+        score += 12
+    elif category == "crime":
+        score += 14
+    elif category == "maritime":
+        score += 10
+    elif category == "osint":
+        score += 8
+
+    high_risk_terms = [
+        "bank",
+        "narcotics",
+        "drug",
+        "malware",
+        "credential",
+        "phishing",
+        "smuggling",
+        "fraud",
+        "scam",
+        "ransomware",
+    ]
+
+    for term in high_risk_terms:
+        if term in title or term in description:
+            score += 8
+
+    if "fiji" in region or "suva" in region:
+        score += 10
+
+    return score
+
+
+def sort_alerts(alerts):
+    return sorted(
+        alerts,
+        key=lambda a: (
+            a.get("priority_score", 0),
+            severity_rank(a.get("severity", "")),
+            a.get("timestamp", ""),
+        ),
+        reverse=True,
+    )
+
+
+# --------------------------------------------------
+# SAMPLE DATA
+# --------------------------------------------------
+
+def generate_alerts():
+    alerts = [
+        {
+            "id": "ALT-001",
+            "title": "Phishing Campaign Targeting Fiji Banks",
+            "description": "Fake banking login pages detected targeting Fijian users.",
+            "type": "phishing",
+            "category": "phishing",
+            "severity": "high",
+            "source": "OpenPhish",
+            "region": "Fiji",
+            "timestamp": utc_now(),
+            "lat": -18.1416,
+            "lng": 178.4419,
+        },
+        {
+            "id": "ALT-002",
+            "title": "Malware Alert - Suspicious File Detected",
+            "description": "Possible malware spreading via email attachments.",
+            "type": "cyber",
+            "category": "cyber",
+            "severity": "medium",
+            "source": "ThreatFeed",
+            "region": "Suva",
+            "timestamp": utc_now(),
+            "lat": -18.1248,
+            "lng": 178.4501,
+        },
+        {
+            "id": "ALT-003",
+            "title": "Maritime Suspicion Near Southern Route",
+            "description": "Vessel movement pattern appears unusual along a known trafficking corridor.",
+            "type": "maritime",
+            "category": "maritime",
+            "severity": "high",
+            "source": "AIS Analysis",
+            "region": "South of Fiji",
+            "timestamp": utc_now(),
+            "lat": -19.0,
+            "lng": 176.0,
+        },
+        {
+            "id": "ALT-004",
+            "title": "Credential Harvesting Scam Reported",
+            "description": "Users reported fake password reset pages harvesting credentials.",
+            "type": "cyber",
+            "category": "cyber",
+            "severity": "high",
+            "source": "Community Reports",
+            "region": "Fiji",
+            "timestamp": utc_now(),
+            "lat": -18.13,
+            "lng": 178.42,
+        },
+    ]
+
+    for alert in alerts:
+        alert["priority_score"] = score_alert(alert)
+
+    return sort_alerts(alerts)
+
+
+def generate_events():
+    return [
+        {
+            "id": "EVT-001",
+            "title": "Public Gathering - Suva",
+            "description": "Large gathering reported in Suva.",
+            "lat": -18.1416,
+            "lng": 178.4419,
+            "region": "Suva",
+            "timestamp": utc_now(),
+            "category": "public_event",
+            "severity": "low",
+            "source": "Event Feed",
+        }
+    ]
+
+
+def generate_crime():
+    return [
+        {
+            "id": "CRM-001",
+            "title": "Drug Trafficking Alert",
+            "description": "Suspicious maritime route linked to narcotics trade.",
+            "lat": -19.0,
+            "lng": 176.0,
+            "region": "South Pacific Corridor",
+            "timestamp": utc_now(),
+            "category": "crime",
+            "severity": "high",
+            "source": "Crime Feed",
+        }
+    ]
+
+
+# --------------------------------------------------
+# VESSEL INTELLIGENCE
+# --------------------------------------------------
+
+def heading_to_text(course_deg):
+    if course_deg is None:
+        return "unknown"
+
+    directions = [
+        "north", "north-east", "east", "south-east",
+        "south", "south-west", "west", "north-west"
+    ]
+    index = round(course_deg / 45) % 8
+    return directions[index]
+
+
+def vessel_suspicion_label(score):
+    if score >= 85:
+        return "critical"
+    if score >= 65:
+        return "high"
+    if score >= 40:
+        return "medium"
+    return "low"
+
+
+def analyze_vessel(vessel, alerts, crime_items):
+    score = 0
+    reasons = []
+
+    name = vessel.get("name")
+    lat = vessel.get("lat")
+    lng = vessel.get("lng")
+    speed = vessel.get("speed_knots")
+    course = vessel.get("course_deg")
+    identity_known = vessel.get("identity_known", True)
+    ais_gap_hours = vessel.get("ais_gap_hours", 0)
+    last_port = safe_lower(vessel.get("last_port"))
+    destination = safe_lower(vessel.get("destination"))
+    region = safe_lower(vessel.get("region"))
+
+    if not identity_known or safe_lower(name) in ["unknown vessel", "unknown", ""]:
+        score += 30
+        reasons.append("Vessel identity is missing or unresolved.")
+
+    if ais_gap_hours >= 6:
+        score += 25
+        reasons.append(f"AIS tracking gap detected ({ais_gap_hours} hours).")
+
+    if "south pacific corridor" in region or "south of fiji" in region:
+        score += 20
+        reasons.append("Vessel is operating in a high-risk southern Pacific corridor.")
+
+    if speed is not None and speed < 3:
+        score += 10
+        reasons.append("Very low speed may indicate loitering or waiting activity.")
+
+    if destination in ["unknown", "", "n/a"]:
+        score += 10
+        reasons.append("Destination data is missing or unclear.")
+
+    if last_port in ["unknown", "", "n/a"]:
+        score += 8
+        reasons.append("Last known port is missing.")
+
+    nearest_crime = None
+    nearest_crime_distance = None
+
+    for crime in crime_items:
+        if None not in (lat, lng, crime.get("lat"), crime.get("lng")):
+            dist = distance_km(lat, lng, crime["lat"], crime["lng"])
+            if nearest_crime_distance is None or dist < nearest_crime_distance:
+                nearest_crime_distance = dist
+                nearest_crime = crime
+
+    if nearest_crime_distance is not None and nearest_crime_distance <= 250:
+        score += 20
+        reasons.append(
+            f"Vessel is within {nearest_crime_distance:.1f} km of a crime-related maritime alert."
+        )
+
+    nearby_maritime_alerts = []
+    for alert in alerts:
+        if safe_lower(alert.get("category")) == "maritime":
+            if None not in (lat, lng, alert.get("lat"), alert.get("lng")):
+                dist = distance_km(lat, lng, alert["lat"], alert["lng"])
+                if dist <= 300:
+                    nearby_maritime_alerts.append({
+                        "id": alert["id"],
+                        "title": alert["title"],
+                        "distance_km": round(dist, 1),
+                    })
+
+    if nearby_maritime_alerts:
+        score += 15
+        reasons.append("Vessel is close to one or more maritime anomaly alerts.")
+
+    inferred_heading = heading_to_text(course)
+    if inferred_heading in ["north", "north-east", "north-west"]:
+        score += 8
+        reasons.append(
+            f"Current course suggests movement {inferred_heading} toward Fiji-facing waters."
+        )
+
+    summary = (
+        f"{name} is assessed as {vessel_suspicion_label(score).upper()} risk. "
+        f"Primary concerns include identity status, operating area, tracking continuity, "
+        f"and proximity to maritime/crime indicators."
+    )
+
+    return {
+        **vessel,
+        "risk_score": score,
+        "risk_level": vessel_suspicion_label(score),
+        "inferred_heading": inferred_heading,
+        "analysis_summary": summary,
+        "risk_reasons": reasons,
+        "nearest_crime_distance_km": round(nearest_crime_distance, 1) if nearest_crime_distance is not None else None,
+        "nearest_crime_title": nearest_crime.get("title") if nearest_crime else None,
+        "nearby_maritime_alerts": nearby_maritime_alerts,
+    }
+
+
+def generate_ships():
+    base_ships = [
+        {
+            "id": "SHP-001",
+            "name": "Cargo Vessel A",
+            "lat": -18.1248,
+            "lng": 178.4501,
+            "region": "Suva Waters",
+            "timestamp": utc_now(),
+            "source": "AIS Feed",
+            "identity_known": True,
+            "speed_knots": 11.4,
+            "course_deg": 35,
+            "destination": "Suva",
+            "last_port": "Lautoka",
+            "ais_gap_hours": 0,
+        },
+        {
+            "id": "SHP-002",
+            "name": "Unknown Vessel",
+            "lat": -20.5,
+            "lng": 175.2,
+            "region": "South Pacific Corridor",
+            "timestamp": utc_now(),
+            "source": "AIS Feed",
+            "identity_known": False,
+            "speed_knots": 2.1,
+            "course_deg": 28,
+            "destination": "Unknown",
+            "last_port": "Unknown",
+            "ais_gap_hours": 8,
+        },
+    ]
+
+    alerts = generate_alerts()
+    crime_items = generate_crime()
+
+    analyzed = [analyze_vessel(vessel, alerts, crime_items) for vessel in base_ships]
+    analyzed.sort(key=lambda v: v.get("risk_score", 0), reverse=True)
+    return analyzed
+
+
+# --------------------------------------------------
+# CORRELATION ENGINE
+# --------------------------------------------------
+
+def build_correlations(alerts, ships, events, crime_items):
     correlations = []
 
-    for ship in ships:
-        for alert in cyber_alerts:
-            loc_score = location_match_score(ship, alert)
-            if loc_score == 0:
-                continue
+    for alert in alerts:
+        alert_title = safe_lower(alert.get("title"))
+        alert_desc = safe_lower(alert.get("description"))
+        alert_category = safe_lower(alert.get("category"))
+        alert_lat = alert.get("lat")
+        alert_lng = alert.get("lng")
 
-            ship_score = ship.get("threat_score", 0)
-            cyber_score = severity_score(alert.get("severity"))
-            credibility = source_score(alert.get("source"))
-            time_score = time_proximity_score(ship, alert)
+        for crime in crime_items:
+            crime_title = safe_lower(crime.get("title"))
+            crime_desc = safe_lower(crime.get("description"))
 
-            total_score = ship_score + cyber_score + credibility + time_score + loc_score
-            level = correlation_level(total_score)
+            keyword_match = any(
+                term in alert_title or term in alert_desc
+                for term in ["drug", "narcotics", "smuggling", "fraud", "scam", "phishing"]
+            ) and any(
+                term in crime_title or term in crime_desc
+                for term in ["drug", "narcotics", "smuggling", "fraud", "scam", "phishing"]
+            )
 
-            correlations.append({
-                "title": "Correlated Threat Detected",
-                "message": f"{ship['name']} ({ship['type']}) near {alert['location']} during {alert['category']} activity",
-                "severity": level.lower(),
-                "priority": total_score,
-                "correlation_confidence": level,
-                "distance_km": round(
-                    distance_km(ship["lat"], ship["lon"], alert["lat"], alert["lon"]), 2
-                ),
-                "ship_name": ship["name"],
-                "ship_type": ship["type"],
-                "ship_source": ship.get("source"),
-                "ship_risk_score": ship_score,
-                "alert_title": alert.get("title"),
-                "alert_source": alert.get("source"),
-                "alert_verification": alert.get("verification"),
-                "alert_severity": alert.get("severity"),
-            })
+            geo_match = False
+            if None not in (alert_lat, alert_lng, crime.get("lat"), crime.get("lng")):
+                geo_match = distance_km(alert_lat, alert_lng, crime["lat"], crime["lng"]) <= 250
 
-    correlations.sort(key=lambda x: x["priority"], reverse=True)
-    return correlations[:20]
+            if keyword_match or geo_match:
+                correlations.append({
+                    "type": "alert_crime",
+                    "severity": "high" if geo_match else "medium",
+                    "summary": f"{alert['title']} correlated with crime item: {crime['title']}",
+                    "alert_id": alert["id"],
+                    "crime_id": crime["id"],
+                    "region": crime.get("region", "Unknown"),
+                    "timestamp": utc_now(),
+                    "confidence": "high" if keyword_match and geo_match else "medium",
+                })
+
+        for ship in ships:
+            ship_lat = ship.get("lat")
+            ship_lng = ship.get("lng")
+            ship_risk = safe_lower(ship.get("risk_level"))
+
+            geo_match = False
+            if None not in (alert_lat, alert_lng, ship_lat, ship_lng):
+                geo_match = distance_km(alert_lat, alert_lng, ship_lat, ship_lng) <= 300
+
+            suspicious_alert = alert_category in ["maritime", "crime"] or any(
+                term in alert_title or term in alert_desc
+                for term in ["vessel", "route", "smuggling", "narcotics", "maritime"]
+            )
+
+            if geo_match and (suspicious_alert or ship_risk in ["high", "critical"]):
+                correlations.append({
+                    "type": "alert_ship",
+                    "severity": "high" if ship_risk in ["high", "critical"] else "medium",
+                    "summary": f"{alert['title']} geographically linked to vessel: {ship['name']}",
+                    "alert_id": alert["id"],
+                    "ship_id": ship["id"],
+                    "region": ship.get("region", "Unknown"),
+                    "timestamp": utc_now(),
+                    "confidence": "high" if ship_risk in ["high", "critical"] else "medium",
+                })
+
+        for event in events:
+            event_lat = event.get("lat")
+            event_lng = event.get("lng")
+
+            geo_match = False
+            if None not in (alert_lat, alert_lng, event_lat, event_lng):
+                geo_match = distance_km(alert_lat, alert_lng, event_lat, event_lng) <= 80
+
+            if geo_match and alert_category in ["cyber", "phishing", "crime"]:
+                correlations.append({
+                    "type": "alert_event",
+                    "severity": "medium",
+                    "summary": f"{alert['title']} is near event location: {event['title']}",
+                    "alert_id": alert["id"],
+                    "event_id": event["id"],
+                    "region": event.get("region", "Unknown"),
+                    "timestamp": utc_now(),
+                    "confidence": "low",
+                })
+
+    correlations.sort(
+        key=lambda c: (severity_rank(c.get("severity", "")), c.get("timestamp", "")),
+        reverse=True,
+    )
+    return correlations
+
+
+# --------------------------------------------------
+# API ROUTES
+# --------------------------------------------------
+
+@app.route("/")
+def index():
+    return jsonify({
+        "message": "God's Eye Pacific Phase 11 Backend Running",
+        "version": "phase-11",
+        "endpoints": [
+            "/api/alerts",
+            "/api/ships",
+            "/api/events",
+            "/api/crime",
+            "/api/correlations",
+            "/api/summary",
+            "/api/vessel-intel",
+        ],
+    })
+
+
+@app.route("/api/alerts")
+def alerts():
+    return jsonify(generate_alerts())
+
+
+@app.route("/api/ships")
+def ships():
+    return jsonify(generate_ships())
+
+
+@app.route("/api/events")
+def events():
+    return jsonify(generate_events())
+
+
+@app.route("/api/crime")
+def crime():
+    return jsonify(generate_crime())
+
+
+@app.route("/api/correlations")
+def correlations():
+    alerts_data = generate_alerts()
+    ships_data = generate_ships()
+    events_data = generate_events()
+    crime_data = generate_crime()
+    return jsonify(build_correlations(alerts_data, ships_data, events_data, crime_data))
+
+
+@app.route("/api/vessel-intel")
+def vessel_intel():
+    ships_data = generate_ships()
+    return jsonify({
+        "generated_at": utc_now(),
+        "high_risk_vessels": [s for s in ships_data if s.get("risk_level") in ["high", "critical"]],
+        "all_vessels": ships_data,
+        "top_vessel": ships_data[0] if ships_data else None,
+    })
+
+
+@app.route("/api/summary")
+def summary():
+    alerts_data = generate_alerts()
+    ships_data = generate_ships()
+    events_data = generate_events()
+    crime_data = generate_crime()
+    correlation_data = build_correlations(alerts_data, ships_data, events_data, crime_data)
+
+    high_priority_alerts = [a for a in alerts_data if a.get("priority_score", 0) >= 80]
+    high_risk_ships = [s for s in ships_data if s.get("risk_level") in ["high", "critical"]]
+
+    return jsonify({
+        "generated_at": utc_now(),
+        "totals": {
+            "alerts": len(alerts_data),
+            "ships": len(ships_data),
+            "events": len(events_data),
+            "crime": len(crime_data),
+            "correlations": len(correlation_data),
+        },
+        "high_priority_alerts": len(high_priority_alerts),
+        "high_risk_ships": len(high_risk_ships),
+        "top_alert": alerts_data[0] if alerts_data else None,
+        "top_correlation": correlation_data[0] if correlation_data else None,
+        "top_vessel": ships_data[0] if ships_data else None,
+    })
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="127.0.0.1", port=5000)
