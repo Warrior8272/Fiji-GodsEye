@@ -79,6 +79,7 @@ function App() {
           value={basemap}
           onChange={(e) => setBasemap(e.target.value)}
         >
+
           <option value="osm">OpenStreetMap</option>
           <option value="esri">Esri Satellite</option>
           <option value="sentinel">Sentinel-2 (Latest)</option>

@@ -2,13 +2,15 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from datetime import datetime, timezone
 import math
+import json
+from websocket import create_connection
 
 app = Flask(__name__)
 CORS(app)
 
 
 # --------------------------------------------------
-# HELPERS
+# BASIC HELPERS
 # --------------------------------------------------
 
 def utc_now():
@@ -47,47 +49,72 @@ def distance_km(lat1, lng1, lat2, lng2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return r * c
 
+
+# --------------------------------------------------
 # ROUTE HELPERS
+# --------------------------------------------------
 
 def km_per_degree_lat():
-    return 111.0 
+    return 111.0
+
 
 def km_per_degree_lng(lat):
     return 111.0 * math.cos(math.radians(lat))
 
-def project_position(lat, lng, course_deg, speed_knots, hours):
 
+def project_position(lat, lng, course_deg, speed_knots, hours):
     if None in (lat, lng, course_deg, speed_knots):
         return None
 
     distance_km_total = speed_knots * 1.852 * hours
-
     course_rad = math.radians(course_deg)
- 
+
     north_km = math.cos(course_rad) * distance_km_total
     east_km = math.sin(course_rad) * distance_km_total
 
-    new_lat = + (north_km / 111.0)
+    new_lat = lat + (north_km / km_per_degree_lat())
+    lng_scale = km_per_degree_lng(lat)
 
-    new_lng = lng + (east_km / (111.0 * math.radians(lat)))
+    if abs(lng_scale) < 0.0001:
+        return None
 
-    return {"lat": round(new_lat,4), "lng": round(new_lng,4)}
+    new_lng = lng + (east_km / lng_scale)
+
+    return {
+        "lat": round(new_lat, 4),
+        "lng": round(new_lng, 4),
+    }
+
 
 def infer_origin_zone(lat, lng):
-
     if lat is None or lng is None:
         return "unknown"
 
     if lat < -25:
-        return "deep south pacific"
+        return "deep South Pacific approach"
+    if lat < -21 and lng < 178:
+        return "south-west Pacific corridor"
+    if lat < -19 and lng < 177:
+        return "southern trafficking corridor"
+    if lat < -18 and lng > 178:
+        return "approach toward Fiji waters"
 
-    if lat < -21:
-        return "south pacific corridor"
+    return "central Pacific approach"
 
-    if lat < -19:
-        return "southern approach"
 
-    return "near fiji waters"
+def is_high_risk_corridor(lat, lng):
+    if lat is None or lng is None:
+        return False
+
+    return (
+        -25 <= lat <= -18 and
+        170 <= lng <= 180
+    )
+
+
+# --------------------------------------------------
+# SCORING HELPERS
+# --------------------------------------------------
 
 def score_alert(alert):
     score = 0
@@ -151,8 +178,95 @@ def sort_alerts(alerts):
     )
 
 
+def heading_to_text(course_deg):
+    if course_deg is None:
+        return "unknown"
+
+    directions = [
+        "north", "north-east", "east", "south-east",
+        "south", "south-west", "west", "north-west"
+    ]
+    index = round(course_deg / 45) % 8
+    return directions[index]
+
+
+def vessel_suspicion_label(score):
+    if score >= 85:
+        return "critical"
+    if score >= 65:
+        return "high"
+    if score >= 40:
+        return "medium"
+    return "low"
+
+
 # --------------------------------------------------
-# SAMPLE DATA
+# DARK ACTIVITY ENGINE
+# --------------------------------------------------
+
+def classify_dark_activity(score):
+    if score >= 75:
+        return "critical"
+    if score >= 50:
+        return "high"
+    if score >= 25:
+        return "medium"
+    return "low"
+
+
+def analyze_dark_activity(vessel):
+    score = 0
+    reasons = []
+
+    ais_gap = vessel.get("ais_gap_hours", 0) or 0
+    speed = vessel.get("speed_knots")
+    route_deviation_km = vessel.get("route_deviation_km", 0) or 0
+    night_reappearance = vessel.get("night_reappearance", False)
+    corridor_match = vessel.get("corridor_match", False)
+    rendezvous_flag = vessel.get("rendezvous_flag", False)
+
+    if ais_gap >= 8:
+        score += 35
+        reasons.append("Extended AIS blackout detected.")
+    elif ais_gap >= 4:
+        score += 20
+        reasons.append("Moderate AIS gap detected.")
+
+    if speed is not None and speed < 3:
+        score += 15
+        reasons.append("Low speed in open water suggests loitering.")
+
+    if route_deviation_km >= 50:
+        score += 20
+        reasons.append("Track deviates significantly from expected route.")
+
+    if night_reappearance:
+        score += 10
+        reasons.append("Reappearance occurred during night hours.")
+
+    if corridor_match:
+        score += 15
+        reasons.append("Track overlaps a high-risk maritime corridor.")
+
+    if rendezvous_flag:
+        score += 25
+        reasons.append("Possible short-duration rendezvous behavior detected.")
+
+    level = classify_dark_activity(score)
+
+    return {
+        "dark_activity_score": score,
+        "dark_activity_level": level,
+        "surface_event_flag": score >= 50,
+        "surface_event_summary": (
+            f"Dark activity assessed as {level.upper()} based on blackout, movement, and corridor indicators."
+        ),
+        "dark_activity_reasons": reasons,
+    }
+
+
+# --------------------------------------------------
+# SAMPLE INTELLIGENCE DATA
 # --------------------------------------------------
 
 def generate_alerts():
@@ -252,30 +366,64 @@ def generate_crime():
 
 
 # --------------------------------------------------
-# VESSEL INTELLIGENCE
+# AISSTREAM
 # --------------------------------------------------
 
-def heading_to_text(course_deg):
-    if course_deg is None:
-        return "unknown"
+def fetch_aisstream_ships():
+    ships = []
 
-    directions = [
-        "north", "north-east", "east", "south-east",
-        "south", "south-west", "west", "north-west"
-    ]
-    index = round(course_deg / 45) % 8
-    return directions[index]
+    try:
+        ws = create_connection("wss://stream.aisstream.io/v0/stream")
+
+        subscribe_message = {
+            "APIKey": "7ca09eeb84e85ab922ac5ed801b51bfd70e9ecb8",
+            "BoundingBoxes": [
+                [
+                    [-25, 170],
+                    [-15, 180]
+                ]
+            ]
+        }
+
+        ws.send(json.dumps(subscribe_message))
+
+        for _ in range(20):
+            result = ws.recv()
+            data = json.loads(result)
+
+            if data.get("MessageType") == "PositionReport":
+                ship = data["Message"]["PositionReport"]
+
+                ships.append({
+                    "id": str(ship.get("UserID")),
+                    "name": f"Vessel {ship.get('UserID')}",
+                    "lat": ship.get("Latitude"),
+                    "lng": ship.get("Longitude"),
+                    "speed_knots": ship.get("Sog"),
+                    "course_deg": ship.get("Cog"),
+                    "region": "Fiji Waters",
+                    "timestamp": utc_now(),
+                    "source": "AISStream",
+                    "identity_known": True,
+                    "destination": "Unknown",
+                    "last_port": "Unknown",
+                    "ais_gap_hours": 0,
+                    "route_deviation_km": 0,
+                    "night_reappearance": False,
+                    "rendezvous_flag": False,
+                })
+
+        ws.close()
+
+    except Exception as e:
+        print("AISStream error:", e)
+
+    return ships
 
 
-def vessel_suspicion_label(score):
-    if score >= 85:
-        return "critical"
-    if score >= 65:
-        return "high"
-    if score >= 40:
-        return "medium"
-    return "low"
-
+# --------------------------------------------------
+# VESSEL ANALYSIS
+# --------------------------------------------------
 
 def analyze_vessel(vessel, alerts, crime_items):
     score = 0
@@ -291,6 +439,19 @@ def analyze_vessel(vessel, alerts, crime_items):
     last_port = safe_lower(vessel.get("last_port"))
     destination = safe_lower(vessel.get("destination"))
     region = safe_lower(vessel.get("region"))
+
+    projected_12h_forward = project_position(lat, lng, course, speed, 12)
+    projected_12h_back = project_position(lat, lng, course, speed, -12)
+
+    corridor_match = is_high_risk_corridor(lat, lng)
+    route_deviation_km = vessel.get("route_deviation_km", 0)
+    night_reappearance = vessel.get("night_reappearance", False)
+    rendezvous_flag = vessel.get("rendezvous_flag", False)
+
+    origin_estimate = infer_origin_zone(
+        projected_12h_back["lat"],
+        projected_12h_back["lng"]
+    ) if projected_12h_back else "unknown"
 
     if not identity_known or safe_lower(name) in ["unknown vessel", "unknown", ""]:
         score += 30
@@ -361,6 +522,16 @@ def analyze_vessel(vessel, alerts, crime_items):
         f"and proximity to maritime/crime indicators."
     )
 
+    dark_activity_input = {
+        **vessel,
+        "route_deviation_km": route_deviation_km,
+        "night_reappearance": night_reappearance,
+        "corridor_match": corridor_match,
+        "rendezvous_flag": rendezvous_flag,
+    }
+
+    dark_activity = analyze_dark_activity(dark_activity_input)
+
     return {
         **vessel,
         "risk_score": score,
@@ -371,42 +542,59 @@ def analyze_vessel(vessel, alerts, crime_items):
         "nearest_crime_distance_km": round(nearest_crime_distance, 1) if nearest_crime_distance is not None else None,
         "nearest_crime_title": nearest_crime.get("title") if nearest_crime else None,
         "nearby_maritime_alerts": nearby_maritime_alerts,
+        "projected_12h_forward": projected_12h_forward,
+        "projected_12h_back": projected_12h_back,
+        "estimated_origin_zone": origin_estimate,
+        "route_deviation_km": route_deviation_km,
+        "night_reappearance": night_reappearance,
+        "corridor_match": corridor_match,
+        "rendezvous_flag": rendezvous_flag,
+        **dark_activity,
     }
 
 
 def generate_ships():
-    base_ships = [
-        {
-            "id": "SHP-001",
-            "name": "Cargo Vessel A",
-            "lat": -18.1248,
-            "lng": 178.4501,
-            "region": "Suva Waters",
-            "timestamp": utc_now(),
-            "source": "AIS Feed",
-            "identity_known": True,
-            "speed_knots": 11.4,
-            "course_deg": 35,
-            "destination": "Suva",
-            "last_port": "Lautoka",
-            "ais_gap_hours": 0,
-        },
-        {
-            "id": "SHP-002",
-            "name": "Unknown Vessel",
-            "lat": -20.5,
-            "lng": 175.2,
-            "region": "South Pacific Corridor",
-            "timestamp": utc_now(),
-            "source": "AIS Feed",
-            "identity_known": False,
-            "speed_knots": 2.1,
-            "course_deg": 28,
-            "destination": "Unknown",
-            "last_port": "Unknown",
-            "ais_gap_hours": 8,
-        },
-    ]
+    base_ships = fetch_aisstream_ships()
+
+    if not base_ships:
+        base_ships = [
+            {
+                "id": "SHP-001",
+                "name": "Cargo Vessel A",
+                "lat": -18.1248,
+                "lng": 178.4501,
+                "region": "Suva Waters",
+                "timestamp": utc_now(),
+                "source": "Fallback",
+                "identity_known": True,
+                "speed_knots": 11.4,
+                "course_deg": 35,
+                "destination": "Suva",
+                "last_port": "Lautoka",
+                "ais_gap_hours": 0,
+                "route_deviation_km": 0,
+                "night_reappearance": False,
+                "rendezvous_flag": False,
+            },
+            {
+                "id": "SHP-002",
+                "name": "Unknown Vessel",
+                "lat": -20.5,
+                "lng": 175.2,
+                "region": "South Pacific Corridor",
+                "timestamp": utc_now(),
+                "source": "Fallback",
+                "identity_known": False,
+                "speed_knots": 2.1,
+                "course_deg": 28,
+                "destination": "Unknown",
+                "last_port": "Unknown",
+                "ais_gap_hours": 8,
+                "route_deviation_km": 60,
+                "night_reappearance": True,
+                "rendezvous_flag": False,
+            },
+        ]
 
     alerts = generate_alerts()
     crime_items = generate_crime()
@@ -518,8 +706,8 @@ def build_correlations(alerts, ships, events, crime_items):
 @app.route("/")
 def index():
     return jsonify({
-        "message": "God's Eye Pacific Phase 11 Backend Running",
-        "version": "phase-11",
+        "message": "God's Eye Pacific Backend Running",
+        "version": "all-in-one",
         "endpoints": [
             "/api/alerts",
             "/api/ships",

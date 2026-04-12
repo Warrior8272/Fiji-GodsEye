@@ -5,6 +5,8 @@ import {
   Popup,
   CircleMarker,
   LayersControl,
+  Polyline,
+  Circle,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -34,6 +36,19 @@ function severityColor(level) {
   }
 }
 
+function darkActivityColor(level) {
+  switch ((level || "").toLowerCase()) {
+    case "critical":
+      return "#7c3aed";
+    case "high":
+      return "#8b5cf6";
+    case "medium":
+      return "#a78bfa";
+    default:
+      return "#c4b5fd";
+  }
+}
+
 function Badge({ text, color }) {
   return (
     <span
@@ -53,23 +68,33 @@ function Badge({ text, color }) {
   );
 }
 
+function SectionToggle({ title, onClick }) {
+  return (
+    <button onClick={onClick} style={buttonStyle}>
+      {title}
+    </button>
+  );
+}
+
 export default function App() {
+  const apiBase = "http://127.0.0.1:5000";
+
   const [alerts, setAlerts] = useState([]);
   const [ships, setShips] = useState([]);
   const [events, setEvents] = useState([]);
   const [crime, setCrime] = useState([]);
   const [correlations, setCorrelations] = useState([]);
   const [summary, setSummary] = useState(null);
+
   const [selectedType, setSelectedType] = useState("all");
 
+  const [showTopVessel, setShowTopVessel] = useState(true);
   const [showAlerts, setShowAlerts] = useState(true);
   const [showShips, setShowShips] = useState(true);
+  const [showDarkActivity, setShowDarkActivity] = useState(true);
+  const [showCorrelations, setShowCorrelations] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
   const [showCrime, setShowCrime] = useState(true);
-  const [showCorrelations, setShowCorrelations] = useState(true);
-  const [showTopVessel, setShowTopVessel] = useState(true);
-
-  const apiBase = "http://127.0.0.1:5000";
 
   useEffect(() => {
     fetch(`${apiBase}/api/alerts`)
@@ -113,13 +138,14 @@ export default function App() {
   }, [alerts, selectedType]);
 
   const topVessel = summary?.top_vessel || ships[0] || null;
+  const flaggedDarkActivityShips = ships.filter((s) => s.surface_event_flag);
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100%" }}>
       <div
         style={{
-          width: "31%",
-          minWidth: "360px",
+          width: "32%",
+          minWidth: "370px",
           background: "#0f172a",
           color: "white",
           overflowY: "auto",
@@ -177,14 +203,7 @@ export default function App() {
         />
         {showTopVessel && topVessel && (
           <div style={cardStyle}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "10px",
-              }}
-            >
+            <div style={rowBetween}>
               <h3 style={{ marginTop: 0, marginBottom: 0 }}>Top Suspicious Vessel</h3>
               <Badge
                 text={topVessel.risk_level || "low"}
@@ -207,16 +226,61 @@ export default function App() {
               Region: {topVessel.region || "unknown"} | Destination:{" "}
               {topVessel.destination || "unknown"}
             </div>
+            <div style={metaLine}>
+              Estimated Origin: {topVessel.estimated_origin_zone || "unknown"}
+            </div>
 
-            {Array.isArray(topVessel.risk_reasons) && topVessel.risk_reasons.length > 0 && (
-              <div style={{ marginTop: "10px" }}>
-                <strong>Reasons</strong>
-                <ul style={listStyle}>
-                  {topVessel.risk_reasons.map((reason, idx) => (
-                    <li key={idx}>{reason}</li>
-                  ))}
-                </ul>
-              </div>
+            {Array.isArray(topVessel.risk_reasons) &&
+              topVessel.risk_reasons.length > 0 && (
+                <div style={{ marginTop: "10px" }}>
+                  <strong>Reasons</strong>
+                  <ul style={listStyle}>
+                    {topVessel.risk_reasons.map((reason, idx) => (
+                      <li key={idx}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+          </div>
+        )}
+
+        <SectionToggle
+          title={showDarkActivity ? "Hide Dark Activity" : "Show Dark Activity"}
+          onClick={() => setShowDarkActivity(!showDarkActivity)}
+        />
+        {showDarkActivity && (
+          <div style={cardStyle}>
+            <h3 style={{ marginTop: 0 }}>Dark Activity Watch</h3>
+            {flaggedDarkActivityShips.length === 0 ? (
+              <p>No dark activity flags.</p>
+            ) : (
+              flaggedDarkActivityShips.map((ship) => (
+                <div key={`dark-${ship.id}`} style={itemStyle}>
+                  <div style={rowBetween}>
+                    <strong>{ship.name}</strong>
+                    <Badge
+                      text={ship.dark_activity_level || "low"}
+                      color={darkActivityColor(ship.dark_activity_level)}
+                    />
+                  </div>
+                  <p style={{ margin: "6px 0" }}>
+                    {ship.surface_event_summary || "No dark activity summary."}
+                  </p>
+                  <small style={{ color: "#cbd5e1" }}>
+                    score {ship.dark_activity_score ?? 0} | surface event{" "}
+                    {ship.surface_event_flag ? "true" : "false"}
+                  </small>
+
+                  {Array.isArray(ship.dark_activity_reasons) &&
+                    ship.dark_activity_reasons.length > 0 && (
+                      <ul style={listStyle}>
+                        {ship.dark_activity_reasons.map((reason, idx) => (
+                          <li key={idx}>{reason}</li>
+                        ))}
+                      </ul>
+                    )}
+                </div>
+              ))
             )}
           </div>
         )}
@@ -292,6 +356,13 @@ export default function App() {
                       AIS Gap: {ship.ais_gap_hours ?? 0}h | Speed:{" "}
                       {ship.speed_knots ?? "n/a"} kn
                     </div>
+                    <div style={metaLine}>
+                      Estimated Origin: {ship.estimated_origin_zone || "unknown"}
+                    </div>
+                    <div style={metaLine}>
+                      Dark Activity: {ship.dark_activity_level || "low"} | Surface
+                      Event: {ship.surface_event_flag ? "true" : "false"}
+                    </div>
 
                     {ship.analysis_summary && (
                       <p style={{ marginTop: "8px" }}>{ship.analysis_summary}</p>
@@ -307,6 +378,18 @@ export default function App() {
                         </ul>
                       </>
                     )}
+
+                    {Array.isArray(ship.dark_activity_reasons) &&
+                      ship.dark_activity_reasons.length > 0 && (
+                        <>
+                          <strong>Dark Activity Reasons</strong>
+                          <ul style={listStyle}>
+                            {ship.dark_activity_reasons.map((reason, idx) => (
+                              <li key={idx}>{reason}</li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
                   </div>
                 </details>
               ))
@@ -398,75 +481,179 @@ export default function App() {
 
       <div style={{ flex: 1 }}>
         <MapContainer
-  center={[-18.2, 178.1]}
-  zoom={6}
-  style={{ height: "100%", width: "100%" }}
->
-  <LayersControl position="topright">
-    <LayersControl.BaseLayer checked name="Esri Satellite">
-      <TileLayer
-        attribution="Tiles © Esri"
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-      />
-    </LayersControl.BaseLayer>
+          center={[-18.2, 178.1]}
+          zoom={6}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <LayersControl position="topright">
+            <LayersControl.BaseLayer checked name="Esri Satellite">
+              <TileLayer
+                attribution="Tiles &copy; Esri"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+            </LayersControl.BaseLayer>
 
-    <LayersControl.BaseLayer name="OpenStreetMap">
-      <TileLayer
-        attribution="© OpenStreetMap contributors"
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-    </LayersControl.BaseLayer>
-  </LayersControl>
+            <LayersControl.BaseLayer name="OpenStreetMap">
+              <TileLayer
+                attribution="&copy; OpenStreetMap contributors"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
 
-  {/* SHIPS */}
-  {ships.map((ship) =>
-    ship.lat && ship.lng ? (
+          {ships.map((ship) =>
+  ship.lat && ship.lng ? (
+    <React.Fragment key={`ship-${ship.id}`}>
+      {ship.surface_event_flag && (
+        <Circle
+          center={[ship.lat, ship.lng]}
+          radius={6}
+          pathOptions={{
+            color: darkActivityColor(ship.dark_activity_level),
+            fillColor: darkActivityColor(ship.dark_activity_level),
+            fillOpacity: 0.12,
+          }}
+        />
+      )}
+
       <CircleMarker
-        key={ship.id}
         center={[ship.lat, ship.lng]}
         radius={12}
         pathOptions={{
           color: riskColor(ship.risk_level),
           fillColor: riskColor(ship.risk_level),
           fillOpacity: 0.85,
+          weight: 2,
         }}
       >
         <Popup>
-          <strong>{ship.name}</strong><br />
-          Risk: {ship.risk_level}<br />
+          <strong>{ship.name}</strong>
+          <br />
+          Risk: {ship.risk_level}
+          <br />
           Score: {ship.risk_score}
+          <br />
+
+          {ship.surface_event_flag && (
+            <div style={{ color: "#a78bfa", fontWeight: "bold", marginTop: "6px" }}>
+              ⚠ Dark Activity Detected
+            </div>
+          )}
+
+          Dark Activity: {ship.dark_activity_level}
+          <br />
+          AIS Gap: {ship.ais_gap_hours ?? 0}h
         </Popup>
       </CircleMarker>
-    ) : null
-  )}
+    </React.Fragment>
+  ) : null
+)}
+         
+                  
 
-  {/* ALERTS */}
-  {alerts.map((alert) =>
-    alert.lat && alert.lng ? (
-      <CircleMarker
-        key={alert.id}
-        center={[alert.lat, alert.lng]}
-        radius={6}
-        pathOptions={{
-          color: severityColor(alert.severity),
-          fillColor: severityColor(alert.severity),
-          fillOpacity: 0.5,
-        }}
-      />
-    ) : null
-  )}
+          {ships.map((ship) => {
+            const back = ship.projected_12h_back;
+            const current = ship.lat && ship.lng ? [ship.lat, ship.lng] : null;
+            const forward = ship.projected_12h_forward;
 
-</MapContainer>
+            if (!back || !current || !forward) return null;
+
+            return (
+              <React.Fragment key={`route-${ship.id}`}>
+                <Polyline
+                  positions={[
+                    [back.lat, back.lng],
+                    current,
+                  ]}
+                  pathOptions={{
+                    color: "#38bdf8",
+                    weight: 3,
+                    opacity: 0.8,
+                    dashArray: "6, 6",
+                  }}
+                />
+                <Polyline
+                  positions={[
+                    current,
+                    [forward.lat, forward.lng],
+                  ]}
+                  pathOptions={{
+                    color: riskColor(ship.risk_level),
+                    weight: 4,
+                    opacity: 0.9,
+                  }}
+                />
+              </React.Fragment>
+            );
+          })}
+
+          {alerts.map((alert) =>
+            alert.lat && alert.lng ? (
+              <CircleMarker
+                key={alert.id}
+                center={[alert.lat, alert.lng]}
+                radius={6}
+                pathOptions={{
+                  color: severityColor(alert.severity),
+                  fillColor: severityColor(alert.severity),
+                  fillOpacity: 0.55,
+                }}
+              >
+                <Popup>
+                  <strong>{alert.title}</strong>
+                  <br />
+                  {alert.description}
+                  <br />
+                  Score: {alert.priority_score ?? 0}
+                </Popup>
+              </CircleMarker>
+            ) : null
+          )}
+
+          {crime.map((entry) =>
+            entry.lat && entry.lng ? (
+              <CircleMarker
+                key={entry.id}
+                center={[entry.lat, entry.lng]}
+                radius={10}
+                pathOptions={{
+                  color: severityColor(entry.severity),
+                  fillColor: severityColor(entry.severity),
+                  fillOpacity: 0.7,
+                }}
+              >
+                <Popup>
+                  <strong>{entry.title}</strong>
+                  <br />
+                  {entry.description}
+                </Popup>
+              </CircleMarker>
+            ) : null
+          )}
+
+          {events.map((event) =>
+            event.lat && event.lng ? (
+              <CircleMarker
+                key={event.id}
+                center={[event.lat, event.lng]}
+                radius={8}
+                pathOptions={{
+                  color: "#38bdf8",
+                  fillColor: "#38bdf8",
+                  fillOpacity: 0.7,
+                }}
+              >
+                <Popup>
+                  <strong>{event.title}</strong>
+                  <br />
+                  {event.description}
+                </Popup>
+              </CircleMarker>
+            ) : null
+          )}
+        </MapContainer>
       </div>
     </div>
-  );
-}
-
-function SectionToggle({ title, onClick }) {
-  return (
-    <button onClick={onClick} style={buttonStyle}>
-      {title}
-    </button>
   );
 }
 
