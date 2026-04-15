@@ -2,736 +2,313 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   TileLayer,
-  Popup,
   CircleMarker,
-  LayersControl,
-  Polyline,
-  Circle,
+  Popup,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-function riskColor(level) {
-  switch ((level || "").toLowerCase()) {
-    case "critical":
-      return "#dc2626";
-    case "high":
-      return "#f97316";
-    case "medium":
-      return "#eab308";
-    default:
-      return "#22c55e";
-  }
+const API_BASE = "http://127.0.0.1:5000";
+const FIJI_CENTER = [-18.1248, 178.4501];
+const MAX_MAP_SHIPS = 100;
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
-function severityColor(level) {
-  switch ((level || "").toLowerCase()) {
-    case "critical":
-      return "#dc2626";
-    case "high":
-      return "#f97316";
-    case "medium":
-      return "#eab308";
-    default:
-      return "#22c55e";
-  }
+function formatNumber(value, digits = 1) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "Unknown";
+  return Number(value).toFixed(digits);
 }
 
-function darkActivityColor(level) {
-  switch ((level || "").toLowerCase()) {
-    case "critical":
-      return "#7c3aed";
-    case "high":
-      return "#8b5cf6";
-    case "medium":
-      return "#a78bfa";
-    default:
-      return "#c4b5fd";
-  }
+function formatHours(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "Unknown";
+  return `${Number(value).toFixed(1)} hrs`;
 }
 
-function Badge({ text, color }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "4px 8px",
-        borderRadius: "999px",
-        fontSize: "12px",
-        fontWeight: 700,
-        background: color,
-        color: "white",
-        textTransform: "uppercase",
-      }}
-    >
-      {text}
-    </span>
-  );
+function markerColor(ship) {
+  if (ship?.ais_timeout) return "gray";
+  if (ship?.suspicious) return "red";
+  if ((ship?.confidence_score ?? 0) >= 75) return "green";
+  if ((ship?.confidence_score ?? 0) >= 45) return "orange";
+  return "yellow";
 }
 
-function SectionToggle({ title, onClick }) {
-  return (
-    <button onClick={onClick} style={buttonStyle}>
-      {title}
-    </button>
-  );
+function markerRadius(ship) {
+  const score = ship?.confidence_score ?? 0;
+  if (score >= 80) return 7;
+  if (score >= 60) return 9;
+  if (score >= 40) return 11;
+  return 13;
 }
 
 export default function App() {
-  const apiBase = "http://127.0.0.1:5000";
-
-  const [alerts, setAlerts] = useState([]);
   const [ships, setShips] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [crime, setCrime] = useState([]);
-  const [correlations, setCorrelations] = useState([]);
-  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState("");
+  
+const [showSuspiciousOnly, setShowSuspiciousOnly] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [basemap, setBasemap] = useState("osm");
 
-  const [selectedType, setSelectedType] = useState("all");
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const [showTopVessel, setShowTopVessel] = useState(true);
-  const [showAlerts, setShowAlerts] = useState(true);
-  const [showShips, setShowShips] = useState(true);
-  const [showDarkActivity, setShowDarkActivity] = useState(true);
-  const [showCorrelations, setShowCorrelations] = useState(true);
-  const [showEvents, setShowEvents] = useState(true);
-  const [showCrime, setShowCrime] = useState(true);
+      const res = await fetch(`${API_BASE}/api/vessels?include_stale=true`);
+      const data = await res.json();
+      const vesselList = safeArray(data?.vessels);
+
+      setShips(vesselList);
+      setLastUpdated(new Date().toLocaleTimeString());
+    } catch (err) {
+      console.error(err);
+      setError("Could not load live AIS data from backend.");
+      setShips([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch(`${apiBase}/api/alerts`)
-      .then((res) => res.json())
-      .then(setAlerts)
-      .catch((err) => console.error("alerts error", err));
-
-    fetch(`${apiBase}/api/ships`)
-      .then((res) => res.json())
-      .then(setShips)
-      .catch((err) => console.error("ships error", err));
-
-    fetch(`${apiBase}/api/events`)
-      .then((res) => res.json())
-      .then(setEvents)
-      .catch((err) => console.error("events error", err));
-
-    fetch(`${apiBase}/api/crime`)
-      .then((res) => res.json())
-      .then(setCrime)
-      .catch((err) => console.error("crime error", err));
-
-    fetch(`${apiBase}/api/correlations`)
-      .then((res) => res.json())
-      .then(setCorrelations)
-      .catch((err) => console.error("correlations error", err));
-
-    fetch(`${apiBase}/api/summary`)
-      .then((res) => res.json())
-      .then(setSummary)
-      .catch((err) => console.error("summary error", err));
+    fetchAllData();
   }, []);
 
-  const filteredAlerts = useMemo(() => {
-    if (selectedType === "all") return alerts;
-    return alerts.filter(
-      (a) =>
-        (a.type || "").toLowerCase() === selectedType ||
-        (a.category || "").toLowerCase() === selectedType
-    );
-  }, [alerts, selectedType]);
+  const filteredShips = useMemo(() => {
+    let data = safeArray(ships);
 
-  const topVessel = summary?.top_vessel || ships[0] || null;
-  const flaggedDarkActivityShips = ships.filter((s) => s.surface_event_flag);
+    if (showSuspiciousOnly) {
+      data = data.filter((ship) => ship?.suspicious);
+    }
+
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      data = data.filter((ship) =>
+        [
+          ship?.name,
+          ship?.mmsi,
+          ship?.imo,
+          ship?.callsign,
+          ship?.destination,
+          ship?.ship_type,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      );
+    }
+
+    return data;
+  }, [ships, showSuspiciousOnly, searchText]);
+
+  const mapShips = useMemo(() => filteredShips.slice(0, MAX_MAP_SHIPS), [filteredShips]);
+
+  const currentTile = useMemo(() => {
+    if (basemap === "esri") {
+      return {
+        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attribution: "Tiles © Esri",
+      };
+    }
+
+    return {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "&copy; OpenStreetMap contributors",
+    };
+  }, [basemap]);
 
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100%" }}>
+    <div
+      style={{
+        height: "100vh",
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: "320px 1fr",
+        background: "#081225",
+        color: "#f8fafc",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
       <div
         style={{
-          width: "32%",
-          minWidth: "370px",
-          background: "#0f172a",
-          color: "white",
-          overflowY: "auto",
-          padding: "12px",
+          padding: "16px",
           borderRight: "1px solid #1e293b",
+          background: "#0b1730",
+          overflowY: "auto",
         }}
       >
-        <h1 style={{ marginTop: 0, marginBottom: "8px" }}>God&apos;s Eye Pacific</h1>
-        <p style={{ color: "#94a3b8", marginTop: 0 }}>
-          Operational Intelligence Dashboard
-        </p>
+        <h1 style={{ marginTop: 0, marginBottom: 8 }}>Fiji God&apos;s Eye</h1>
+        <div style={{ color: "#94a3b8", marginBottom: 18 }}>Live AIS Dashboard</div>
 
-        {summary && (
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Summary</h3>
-            <div style={summaryGrid}>
-              <div style={miniCard}>
-                <strong>{summary.totals?.alerts ?? 0}</strong>
-                <div style={miniLabel}>Alerts</div>
-              </div>
-              <div style={miniCard}>
-                <strong>{summary.totals?.ships ?? 0}</strong>
-                <div style={miniLabel}>Ships</div>
-              </div>
-              <div style={miniCard}>
-                <strong>{summary.totals?.correlations ?? 0}</strong>
-                <div style={miniLabel}>Correlations</div>
-              </div>
-              <div style={miniCard}>
-                <strong>{summary.high_risk_ships ?? 0}</strong>
-                <div style={miniLabel}>High Risk Ships</div>
-              </div>
-            </div>
-          </div>
-        )}
+        <button onClick={fetchAllData} style={{ marginBottom: 14 }}>
+          Refresh
+        </button>
 
-        <div style={{ marginBottom: "14px" }}>
-          <label style={{ marginRight: "8px" }}>Filter Alerts:</label>
+        <div style={{ marginBottom: 14 }}>
+          <strong>Total ships:</strong> {ships.length}
+          <br />
+          <strong>On map:</strong> {mapShips.length}
+          <br />
+          <strong>Last updated:</strong> {lastUpdated || "Waiting..."}
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={showSuspiciousOnly}
+              onChange={(e) => setShowSuspiciousOnly(e.target.checked)}
+              style={{ marginRight: 8 }}
+            />
+            Suspicious only
+          </label>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 6 }}>Search</div>
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="name, MMSI, IMO..."
+            style={{
+              width: "100%",
+              padding: "8px",
+              background: "#020617",
+              color: "white",
+              border: "1px solid #334155",
+              borderRadius: "6px",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 6 }}>Basemap</div>
           <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            style={selectStyle}
+            value={basemap}
+            onChange={(e) => setBasemap(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px",
+              background: "#020617",
+              color: "white",
+              border: "1px solid #334155",
+              borderRadius: "6px",
+            }}
           >
-            <option value="all">All</option>
-            <option value="cyber">Cyber</option>
-            <option value="phishing">Phishing</option>
-            <option value="crime">Crime</option>
-            <option value="maritime">Maritime</option>
+            <option value="osm">OpenStreetMap</option>
+            <option value="esri">Esri Satellite</option>
           </select>
         </div>
 
-        <SectionToggle
-          title={showTopVessel ? "Hide Top Vessel" : "Show Top Vessel"}
-          onClick={() => setShowTopVessel(!showTopVessel)}
-        />
-        {showTopVessel && topVessel && (
-          <div style={cardStyle}>
-            <div style={rowBetween}>
-              <h3 style={{ marginTop: 0, marginBottom: 0 }}>Top Suspicious Vessel</h3>
-              <Badge
-                text={topVessel.risk_level || "low"}
-                color={riskColor(topVessel.risk_level)}
-              />
-            </div>
+        {loading && <div style={{ marginBottom: 12 }}>Loading...</div>}
 
-            <div style={{ marginTop: "10px" }}>
-              <strong>{topVessel.name}</strong>
-            </div>
-            <p style={{ margin: "8px 0" }}>
-              {topVessel.analysis_summary || "No vessel analysis available."}
-            </p>
-
-            <div style={metaLine}>
-              Score: {topVessel.risk_score ?? 0} | Heading:{" "}
-              {topVessel.inferred_heading || "unknown"}
-            </div>
-            <div style={metaLine}>
-              Region: {topVessel.region || "unknown"} | Destination:{" "}
-              {topVessel.destination || "unknown"}
-            </div>
-            <div style={metaLine}>
-              Estimated Origin: {topVessel.estimated_origin_zone || "unknown"}
-            </div>
-
-            {Array.isArray(topVessel.risk_reasons) &&
-              topVessel.risk_reasons.length > 0 && (
-                <div style={{ marginTop: "10px" }}>
-                  <strong>Reasons</strong>
-                  <ul style={listStyle}>
-                    {topVessel.risk_reasons.map((reason, idx) => (
-                      <li key={idx}>{reason}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+        {error && (
+          <div
+            style={{
+              background: "#7f1d1d",
+              color: "white",
+              padding: "10px",
+              borderRadius: "8px",
+              marginBottom: 12,
+            }}
+          >
+            {error}
           </div>
         )}
 
-        <SectionToggle
-          title={showDarkActivity ? "Hide Dark Activity" : "Show Dark Activity"}
-          onClick={() => setShowDarkActivity(!showDarkActivity)}
-        />
-        {showDarkActivity && (
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Dark Activity Watch</h3>
-            {flaggedDarkActivityShips.length === 0 ? (
-              <p>No dark activity flags.</p>
-            ) : (
-              flaggedDarkActivityShips.map((ship) => (
-                <div key={`dark-${ship.id}`} style={itemStyle}>
-                  <div style={rowBetween}>
-                    <strong>{ship.name}</strong>
-                    <Badge
-                      text={ship.dark_activity_level || "low"}
-                      color={darkActivityColor(ship.dark_activity_level)}
-                    />
-                  </div>
-                  <p style={{ margin: "6px 0" }}>
-                    {ship.surface_event_summary || "No dark activity summary."}
-                  </p>
-                  <small style={{ color: "#cbd5e1" }}>
-                    score {ship.dark_activity_score ?? 0} | surface event{" "}
-                    {ship.surface_event_flag ? "true" : "false"}
-                  </small>
-
-                  {Array.isArray(ship.dark_activity_reasons) &&
-                    ship.dark_activity_reasons.length > 0 && (
-                      <ul style={listStyle}>
-                        {ship.dark_activity_reasons.map((reason, idx) => (
-                          <li key={idx}>{reason}</li>
-                        ))}
-                      </ul>
-                    )}
-                </div>
-              ))
-            )}
+        {ships.length > MAX_MAP_SHIPS && (
+          <div
+            style={{
+              background: "#78350f",
+              color: "#fef3c7",
+              padding: "10px",
+              borderRadius: "8px",
+              marginBottom: 12,
+            }}
+          >
+            Feed is very large. Showing first {MAX_MAP_SHIPS} ships on the map to keep the dashboard stable.
           </div>
         )}
 
-        <SectionToggle
-          title={showAlerts ? "Hide Alerts" : "Show Alerts"}
-          onClick={() => setShowAlerts(!showAlerts)}
-        />
-        {showAlerts && (
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Alerts</h3>
-            {filteredAlerts.length === 0 ? (
-              <p>No alerts available.</p>
-            ) : (
-              filteredAlerts.map((alert) => (
-                <div key={alert.id} style={itemStyle}>
-                  <div style={rowBetween}>
-                    <strong>{alert.title}</strong>
-                    <Badge
-                      text={alert.severity || "low"}
-                      color={severityColor(alert.severity)}
-                    />
-                  </div>
-                  <p style={{ margin: "6px 0" }}>{alert.description}</p>
-                  <small style={{ color: "#cbd5e1" }}>
-                    {(alert.category || alert.type || "unknown").toLowerCase()} |{" "}
-                    {alert.source || "unknown"} | score {alert.priority_score ?? 0}
-                  </small>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        <SectionToggle
-          title={showShips ? "Hide Ships" : "Show Ships"}
-          onClick={() => setShowShips(!showShips)}
-        />
-        {showShips && (
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Ships</h3>
-            {ships.length === 0 ? (
-              <p>No ship data available.</p>
-            ) : (
-              ships.map((ship) => (
-                <details key={ship.id} style={detailsStyle}>
-                  <summary style={summaryStyle}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <strong>{ship.name}</strong>
-                      <Badge
-                        text={ship.risk_level || "low"}
-                        color={riskColor(ship.risk_level)}
-                      />
-                    </div>
-                  </summary>
-
-                  <div style={{ marginTop: "10px" }}>
-                    <div style={metaLine}>
-                      Lat: {ship.lat}, Lng: {ship.lng}
-                    </div>
-                    <div style={metaLine}>
-                      Score: {ship.risk_score ?? 0} | Heading:{" "}
-                      {ship.inferred_heading || "unknown"}
-                    </div>
-                    <div style={metaLine}>
-                      Region: {ship.region || "unknown"}
-                    </div>
-                    <div style={metaLine}>
-                      Destination: {ship.destination || "unknown"} | Last Port:{" "}
-                      {ship.last_port || "unknown"}
-                    </div>
-                    <div style={metaLine}>
-                      AIS Gap: {ship.ais_gap_hours ?? 0}h | Speed:{" "}
-                      {ship.speed_knots ?? "n/a"} kn
-                    </div>
-                    <div style={metaLine}>
-                      Estimated Origin: {ship.estimated_origin_zone || "unknown"}
-                    </div>
-                    <div style={metaLine}>
-                      Dark Activity: {ship.dark_activity_level || "low"} | Surface
-                      Event: {ship.surface_event_flag ? "true" : "false"}
-                    </div>
-
-                    {ship.analysis_summary && (
-                      <p style={{ marginTop: "8px" }}>{ship.analysis_summary}</p>
-                    )}
-
-                    {Array.isArray(ship.risk_reasons) && ship.risk_reasons.length > 0 && (
-                      <>
-                        <strong>Reasons</strong>
-                        <ul style={listStyle}>
-                          {ship.risk_reasons.map((reason, idx) => (
-                            <li key={idx}>{reason}</li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-
-                    {Array.isArray(ship.dark_activity_reasons) &&
-                      ship.dark_activity_reasons.length > 0 && (
-                        <>
-                          <strong>Dark Activity Reasons</strong>
-                          <ul style={listStyle}>
-                            {ship.dark_activity_reasons.map((reason, idx) => (
-                              <li key={idx}>{reason}</li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                  </div>
-                </details>
-              ))
-            )}
-          </div>
-        )}
-
-        <SectionToggle
-          title={showCorrelations ? "Hide Correlations" : "Show Correlations"}
-          onClick={() => setShowCorrelations(!showCorrelations)}
-        />
-        {showCorrelations && (
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Correlations</h3>
-            {correlations.length === 0 ? (
-              <p>No correlation data available.</p>
-            ) : (
-              correlations.slice(0, 8).map((item, idx) => (
-                <div key={`${item.type}-${idx}`} style={itemStyle}>
-                  <div style={rowBetween}>
-                    <strong>{item.type}</strong>
-                    <Badge
-                      text={item.severity || "low"}
-                      color={severityColor(item.severity)}
-                    />
-                  </div>
-                  <p style={{ margin: "6px 0" }}>{item.summary}</p>
-                  <small style={{ color: "#cbd5e1" }}>
-                    {item.region || "unknown"} | confidence {item.confidence || "unknown"}
-                  </small>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        <SectionToggle
-          title={showEvents ? "Hide Events" : "Show Events"}
-          onClick={() => setShowEvents(!showEvents)}
-        />
-        {showEvents && (
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Events</h3>
-            {events.length === 0 ? (
-              <p>No event data available.</p>
-            ) : (
-              events.map((event) => (
-                <div key={event.id} style={itemStyle}>
-                  <strong>{event.title}</strong>
-                  <p style={{ margin: "6px 0" }}>{event.description}</p>
-                  <small style={{ color: "#cbd5e1" }}>
-                    {event.region || "unknown"} | {event.source || "unknown"}
-                  </small>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        <SectionToggle
-          title={showCrime ? "Hide Crime" : "Show Crime"}
-          onClick={() => setShowCrime(!showCrime)}
-        />
-        {showCrime && (
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Crime</h3>
-            {crime.length === 0 ? (
-              <p>No crime data available.</p>
-            ) : (
-              crime.map((entry) => (
-                <div key={entry.id} style={itemStyle}>
-                  <div style={rowBetween}>
-                    <strong>{entry.title}</strong>
-                    <Badge
-                      text={entry.severity || "low"}
-                      color={severityColor(entry.severity)}
-                    />
-                  </div>
-                  <p style={{ margin: "6px 0" }}>{entry.description}</p>
-                  <small style={{ color: "#cbd5e1" }}>
-                    {entry.region || "unknown"} | {entry.source || "unknown"}
-                  </small>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+        <div style={{ fontSize: 14, color: "#cbd5e1" }}>
+          <div><span style={{ color: "red" }}>●</span> Suspicious</div>
+          <div><span style={{ color: "gray" }}>●</span> AIS timeout</div>
+          <div><span style={{ color: "green" }}>●</span> High confidence</div>
+          <div><span style={{ color: "orange" }}>●</span> Medium confidence</div>
+          <div><span style={{ color: "yellow" }}>●</span> Low confidence</div>
+        </div>
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ position: "relative" }}>
         <MapContainer
-          center={[-18.2, 178.1]}
-          zoom={6}
+          center={FIJI_CENTER}
+          zoom={5}
           style={{ height: "100%", width: "100%" }}
+          worldCopyJump={false}
+          preferCanvas={true}
         >
-          <LayersControl position="topright">
-            <LayersControl.BaseLayer checked name="Esri Satellite">
-              <TileLayer
-                attribution="Tiles &copy; Esri"
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              />
-            </LayersControl.BaseLayer>
+          <TileLayer
+            attribution={currentTile.attribution}
+            url={currentTile.url}
+          />
 
-            <LayersControl.BaseLayer name="OpenStreetMap">
-              <TileLayer
-                attribution="&copy; OpenStreetMap contributors"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-            </LayersControl.BaseLayer>
-          </LayersControl>
+          {mapShips.map((ship, index) => {
+            const lat = Number(ship?.lat);
+            const lon = Number(ship?.lon);
 
-          {ships.map((ship) =>
-  ship.lat && ship.lng ? (
-    <React.Fragment key={`ship-${ship.id}`}>
-      {ship.surface_event_flag && (
-        <Circle
-          center={[ship.lat, ship.lng]}
-          radius={6}
-          pathOptions={{
-            color: darkActivityColor(ship.dark_activity_level),
-            fillColor: darkActivityColor(ship.dark_activity_level),
-            fillOpacity: 0.12,
-          }}
-        />
-      )}
-
-      <CircleMarker
-        center={[ship.lat, ship.lng]}
-        radius={12}
-        pathOptions={{
-          color: riskColor(ship.risk_level),
-          fillColor: riskColor(ship.risk_level),
-          fillOpacity: 0.85,
-          weight: 2,
-        }}
-      >
-        <Popup>
-          <strong>{ship.name}</strong>
-          <br />
-          Risk: {ship.risk_level}
-          <br />
-          Score: {ship.risk_score}
-          <br />
-
-          {ship.surface_event_flag && (
-            <div style={{ color: "#a78bfa", fontWeight: "bold", marginTop: "6px" }}>
-              ⚠ Dark Activity Detected
-            </div>
-          )}
-
-          Dark Activity: {ship.dark_activity_level}
-          <br />
-          AIS Gap: {ship.ais_gap_hours ?? 0}h
-        </Popup>
-      </CircleMarker>
-    </React.Fragment>
-  ) : null
-)}
-         
-                  
-
-          {ships.map((ship) => {
-            const back = ship.projected_12h_back;
-            const current = ship.lat && ship.lng ? [ship.lat, ship.lng] : null;
-            const forward = ship.projected_12h_forward;
-
-            if (!back || !current || !forward) return null;
+            if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
 
             return (
-              <React.Fragment key={`route-${ship.id}`}>
-                <Polyline
-                  positions={[
-                    [back.lat, back.lng],
-                    current,
-                  ]}
-                  pathOptions={{
-                    color: "#38bdf8",
-                    weight: 3,
-                    opacity: 0.8,
-                    dashArray: "6, 6",
-                  }}
-                />
-                <Polyline
-                  positions={[
-                    current,
-                    [forward.lat, forward.lng],
-                  ]}
-                  pathOptions={{
-                    color: riskColor(ship.risk_level),
-                    weight: 4,
-                    opacity: 0.9,
-                  }}
-                />
-              </React.Fragment>
+              <CircleMarker
+                key={`${ship?.mmsi || ship?.name || "ship"}-${index}`}
+                center={[lat, lon]}
+                radius={markerRadius(ship)}
+                pathOptions={{
+                  color: markerColor(ship),
+                  fillColor: markerColor(ship),
+                  fillOpacity: 0.75,
+                  weight: 2,
+                }}
+              >
+                <Popup>
+                  <div style={{ minWidth: 250, color: "#111827" }}>
+                    <h3 style={{ marginTop: 0, marginBottom: 8 }}>
+                      {ship?.name || "Unknown Vessel"}
+                    </h3>
+
+                    <div><strong>MMSI:</strong> {ship?.mmsi || "Unknown"}</div>
+                    <div><strong>IMO:</strong> {ship?.imo || "Unknown"}</div>
+                    <div><strong>Callsign:</strong> {ship?.callsign || "Unknown"}</div>
+                    <div><strong>Type:</strong> {ship?.ship_type || "Unknown"}</div>
+                    <div><strong>Status:</strong> {ship?.status || "Unknown"}</div>
+                    <div><strong>Destination:</strong> {ship?.destination || "Unknown"}</div>
+
+                    <hr />
+
+                    <div><strong>Speed:</strong> {formatNumber(ship?.speed_knots, 1)} knots</div>
+                    <div><strong>Course:</strong> {ship?.course ?? "Unknown"}°</div>
+                    <div><strong>Heading:</strong> {ship?.heading ?? "Unknown"}°</div>
+                    <div><strong>Distance to Fiji:</strong> {formatNumber(ship?.distance_to_fiji_nm, 1)} NM</div>
+                    <div><strong>Hours since seen:</strong> {formatHours(ship?.hours_since_seen)}</div>
+                    <div><strong>Confidence:</strong> {ship?.confidence_score ?? 0}%</div>
+
+                    <hr />
+
+                    <div><strong>Suspicious:</strong> {ship?.suspicious ? "Yes" : "No"}</div>
+                    <div><strong>AIS timeout:</strong> {ship?.ais_timeout ? "Yes" : "No"}</div>
+                    <div><strong>Unknown vessel:</strong> {ship?.unknown_vessel ? "Yes" : "No"}</div>
+                    <div><strong>Source:</strong> {ship?.source || "Unknown"}</div>
+                  </div>
+                </Popup>
+              </CircleMarker>
             );
           })}
-
-          {alerts.map((alert) =>
-            alert.lat && alert.lng ? (
-              <CircleMarker
-                key={alert.id}
-                center={[alert.lat, alert.lng]}
-                radius={6}
-                pathOptions={{
-                  color: severityColor(alert.severity),
-                  fillColor: severityColor(alert.severity),
-                  fillOpacity: 0.55,
-                }}
-              >
-                <Popup>
-                  <strong>{alert.title}</strong>
-                  <br />
-                  {alert.description}
-                  <br />
-                  Score: {alert.priority_score ?? 0}
-                </Popup>
-              </CircleMarker>
-            ) : null
-          )}
-
-          {crime.map((entry) =>
-            entry.lat && entry.lng ? (
-              <CircleMarker
-                key={entry.id}
-                center={[entry.lat, entry.lng]}
-                radius={10}
-                pathOptions={{
-                  color: severityColor(entry.severity),
-                  fillColor: severityColor(entry.severity),
-                  fillOpacity: 0.7,
-                }}
-              >
-                <Popup>
-                  <strong>{entry.title}</strong>
-                  <br />
-                  {entry.description}
-                </Popup>
-              </CircleMarker>
-            ) : null
-          )}
-
-          {events.map((event) =>
-            event.lat && event.lng ? (
-              <CircleMarker
-                key={event.id}
-                center={[event.lat, event.lng]}
-                radius={8}
-                pathOptions={{
-                  color: "#38bdf8",
-                  fillColor: "#38bdf8",
-                  fillOpacity: 0.7,
-                }}
-              >
-                <Popup>
-                  <strong>{event.title}</strong>
-                  <br />
-                  {event.description}
-                </Popup>
-              </CircleMarker>
-            ) : null
-          )}
         </MapContainer>
       </div>
     </div>
   );
 }
-
-const selectStyle = {
-  padding: "7px 10px",
-  borderRadius: "8px",
-  background: "#1e293b",
-  color: "white",
-  border: "1px solid #334155",
-};
-
-const buttonStyle = {
-  width: "100%",
-  padding: "10px",
-  marginBottom: "8px",
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-};
-
-const cardStyle = {
-  background: "#1e293b",
-  padding: "12px",
-  borderRadius: "10px",
-  marginBottom: "12px",
-};
-
-const itemStyle = {
-  padding: "10px 0",
-  borderBottom: "1px solid #334155",
-};
-
-const rowBetween = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "8px",
-};
-
-const listStyle = {
-  marginTop: "8px",
-  marginBottom: 0,
-  paddingLeft: "18px",
-};
-
-const metaLine = {
-  color: "#cbd5e1",
-  fontSize: "13px",
-  marginTop: "4px",
-};
-
-const detailsStyle = {
-  padding: "10px 0",
-  borderBottom: "1px solid #334155",
-};
-
-const summaryStyle = {
-  cursor: "pointer",
-  listStyle: "none",
-};
-
-const summaryGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
-  gap: "8px",
-};
-
-const miniCard = {
-  background: "#0f172a",
-  borderRadius: "10px",
-  padding: "10px",
-  textAlign: "center",
-};
-
-const miniLabel = {
-  fontSize: "12px",
-  color: "#94a3b8",
-  marginTop: "4px",
-};
