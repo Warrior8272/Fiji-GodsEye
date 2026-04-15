@@ -51,10 +51,10 @@ def parse_aisstream_time(value: str | None):
             return None
 
 
-def _fiji_bounding_box() -> List[List[List[float]]]:
+def _fiji_bounding_box():
     return [
-        [[-25.0, 172.0], [-12.0, 180.0]],
-        [[-25.0, -180.0], [-12.0, -175.0]],
+        [[-40.0, 140.0], [0.0, 180.0]],   # BIG Pacific region
+        [[-40.0, -180.0], [0.0, -140.0]], # Dateline wrap
     ]
 
 

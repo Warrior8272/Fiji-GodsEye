@@ -233,21 +233,36 @@ def enrich_vessel(vessel: Dict[str, Any]) -> Dict[str, Any]:
     return vessel
 
 
-def get_vessels() -> List[Dict[str, Any]]:
-    vessels: List[Dict[str, Any]] = []
-    for raw in load_raw_vessels():
-        normalized = normalize_vessel(raw)
-        if normalized:
-            vessels.append(enrich_vessel(normalized))
+def get_vessels():
+    vessels = load_raw_vessels()
 
-    vessels.sort(
-        key=lambda v: (
-            not v["suspicious"],
-            v["ais_timeout"],
-            v["distance_to_fiji_nm"],
-            -v["confidence_score"],
-        )
-    )
+    # 🚨 FALLBACK if empty
+    if not vessels:
+        print("⚠️ No live AIS → using fallback vessels")
+
+        vessels = [
+            {
+                "mmsi": 123456789,
+                "name": "PACIFIC TEST 1",
+                "lat": -17.8,
+                "lon": 178.5,
+                "speed": 12.3,
+                "course": 90,
+                "confidence": 80,
+                "suspicious": False
+            },
+            {
+                "mmsi": 987654321,
+                "name": "PACIFIC TEST 2",
+                "lat": -18.2,
+                "lon": 177.9,
+                "speed": 5.2,
+                "course": 220,
+                "confidence": 60,
+                "suspicious": True
+            }
+        ]
+
     return vessels
 
 
