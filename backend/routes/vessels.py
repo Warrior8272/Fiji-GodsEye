@@ -25,12 +25,29 @@ def apply_filters(vessels):
     return filtered
 
 
+def detect_mode(vessels):
+    if not vessels:
+        return "empty"
+
+    sources = {str(v.get("source", "")).lower() for v in vessels}
+
+    if "aisstream_live" in sources:
+        return "live"
+    if "cache" in sources or "cached" in sources:
+        return "cached"
+    if any("test" in str(v.get("name", "")).lower() for v in vessels):
+        return "fallback"
+
+    return "unknown"
+
+
 @vessels_bp.route("/api/vessels")
 def api_vessels():
     vessels = apply_filters(get_vessels())[:300]
 
     return jsonify({
         "count": len(vessels),
+        "mode": detect_mode(vessels),
         "vessels": vessels
     })
 

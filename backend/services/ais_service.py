@@ -59,7 +59,7 @@ def _fiji_bounding_box():
 
 
 def _aisstream_subscription() -> Dict[str, Any]:
-    api_key = Config.AIS_API_KEY or os.getenv("AIS_API_KEY", "").strip()
+    api_key = Config.AIS_API_KEY or os.getenv("7ca09eeb84e85ab922ac5ed801b51bfd70e9ecb8", "").strip()
 
     return {
         "APIKey": api_key,
