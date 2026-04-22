@@ -1,54 +1,47 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+
+from services.db import init_db, list_alerts, list_vessels, get_vessel_history
+from services.correlation import correlate_vessels_alerts
+from services.intelligence import score_vessels
+from services.alert_correlation import correlate_alerts_vessels
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/api/vessels")
-def vessels():
-    return jsonify([
-        {
-            "id": 1,
-            "name": "Cargo Alpha",
-            "lat": -18.2,
-            "lon": 177.2,
-            "speed": 10,
-            "lastSeen": "5m ago",
-            "confidence": 70,
-            "type": "Cargo"
-        },
-        {
-            "id": 2,
-            "name": "Unknown Vessel",
-            "lat": -18.5,
-            "lon": 176.8,
-            "speed": 12,
-            "lastSeen": "1h ago",
-            "confidence": 80,
-            "type": "Unknown"
-        }
-    ])
+init_db()
+live_vessels = []
+
+def get_scored_vessels():
+    vessels_data = list_vessels(100)
+    alerts_data = list_alerts(100)
+    correlated = correlate_vessels_alerts(vessels_data, alerts_data, radius_km=80)
+    scored = score_vessels(correlated)
+    return scored
 
 @app.route("/api/alerts")
 def alerts():
-    return jsonify([
-        {
-            "id": 1,
-            "name": "Phishing Campaign",
-            "lat": -17.75,
-            "lon": 178.45,
-            "severity": "high",
-            "type": "cyber"
-        },
-        {
-            "id": 2,
-            "name": "Suspicious Maritime Activity",
-            "lat": -18.05,
-            "lon": 177.65,
-            "severity": "medium",
-            "type": "maritime"
-        }
-    ])
+    alerts_data = list_alerts(100)
+    scored_vessels = get_scored_vessels()
+    enriched_alerts = correlate_alerts_vessels(alerts_data, scored_vessels, radius_km=80)
+    return jsonify(enriched_alerts)
+
+@app.route("/api/vessels", methods=["GET", "POST"])
+def handle_vessels():
+    global live_vessels
+
+    if request.method == "POST":
+        data = request.json
+        live_vessels = [v for v in live_vessels if v["id"] != data["id"]]
+        live_vessels.append(data)
+        live_vessels = live_vessels[-500:]
+        return {"status": "added"}
+
+    return jsonify(get_scored_vessels())
+
+@app.route("/api/vessels/<path:vessel_id>/history")
+def vessel_history(vessel_id):
+    return jsonify(get_vessel_history(vessel_id, 100))
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=5000)
