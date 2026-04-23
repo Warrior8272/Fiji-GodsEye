@@ -9,7 +9,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-function FitToData({ vessels, alerts, route, prediction, shouldFit }) {
+function FitToData({ vessels, alerts, shouldFit }) {
   const map = useMap();
 
   useEffect(() => {
@@ -23,20 +23,7 @@ function FitToData({ vessels, alerts, route, prediction, shouldFit }) {
       .map((a) => [Number(a.lat), Number(a.lon)])
       .filter(([lat, lon]) => !Number.isNaN(lat) && !Number.isNaN(lon));
 
-    const routePoints = (route || [])
-      .map((p) => [Number(p[0]), Number(p[1])])
-      .filter(([lat, lon]) => !Number.isNaN(lat) && !Number.isNaN(lon));
-
-    const predictionPoints = (prediction || [])
-      .map((p) => [Number(p[0]), Number(p[1])])
-      .filter(([lat, lon]) => !Number.isNaN(lat) && !Number.isNaN(lon));
-
-    const allPoints = [
-      ...vesselPoints,
-      ...alertPoints,
-      ...routePoints,
-      ...predictionPoints,
-    ];
+    const allPoints = [...vesselPoints, ...alertPoints];
 
     if (allPoints.length === 1) {
       map.setView(allPoints[0], 9);
@@ -46,19 +33,63 @@ function FitToData({ vessels, alerts, route, prediction, shouldFit }) {
     if (allPoints.length > 1) {
       map.fitBounds(allPoints, { padding: [40, 40] });
     }
-  }, [vessels, alerts, route, prediction, shouldFit, map]);
+  }, [vessels, alerts, shouldFit, map]);
+
+  return null;
+}
+
+function FollowSelected({ selected, selectedType, followMode }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!followMode) return;
+    if (!selected) return;
+    if (selectedType !== "vessel") return;
+
+    const lat = Number(selected.lat);
+    const lon = Number(selected.lon);
+
+    if (Number.isNaN(lat) || Number.isNaN(lon)) return;
+
+    map.panTo([lat, lon], { animate: true, duration: 0.8 });
+  }, [selected, selectedType, followMode, map]);
+
+  return null;
+}
+
+function LocateSelectedVessel() {
+  const map = useMap();
+
+  useEffect(() => {
+    const handler = (event) => {
+      const lat = Number(event.detail?.lat);
+      const lon = Number(event.detail?.lon);
+
+      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+        map.setView([lat, lon], Math.max(map.getZoom(), 10), {
+          animate: true,
+        });
+      }
+    };
+
+    window.addEventListener("locate-selected-vessel", handler);
+    return () => window.removeEventListener("locate-selected-vessel", handler);
+  }, [map]);
 
   return null;
 }
 
 function isOnLand(lat, lon) {
-  if (Number.isNaN(lat) || Number.isNaN(lon)) return false;
+  const nLat = Number(lat);
+  const nLon = Number(lon);
+
+  if (Number.isNaN(nLat) || Number.isNaN(nLon)) return false;
 
   return (
-    lat > -18.2 &&
-    lat < -17.6 &&
-    lon > 177.3 &&
-    lon < 178.2
+    nLat > -18.2 &&
+    nLat < -17.5 &&
+    nLon > 177.3 &&
+    nLon < 178.2
   );
 }
 
@@ -68,23 +99,34 @@ function projectPoint(lat, lon, courseDeg, distanceKm = 3) {
 
   const lat1 = (lat * Math.PI) / 180;
   const lon1 = (lon * Math.PI) / 180;
+  const angularDistance = distanceKm / R;
 
   const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(distanceKm / R) +
-    Math.cos(lat1) * Math.sin(distanceKm / R) * Math.cos(bearing)
+    Math.sin(lat1) * Math.cos(angularDistance) +
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
   );
 
   const lon2 =
     lon1 +
     Math.atan2(
-      Math.sin(bearing) * Math.sin(distanceKm / R) * Math.cos(lat1),
-      Math.cos(distanceKm / R) - Math.sin(lat1) * Math.sin(lat2)
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
     );
 
-  return [
-    (lat2 * 180) / Math.PI,
-    (lon2 * 180) / Math.PI,
-  ];
+  return [(lat2 * 180) / Math.PI, (lon2 * 180) / Math.PI];
+}
+
+function formatFlags(flags) {
+  if (!flags || flags.length === 0) return "None";
+  return flags.join(", ");
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div style={{ marginBottom: "8px" }}>
+      <strong>{label}:</strong> {value}
+    </div>
+  );
 }
 
 export default function App() {
@@ -97,6 +139,9 @@ export default function App() {
   const [route, setRoute] = useState([]);
   const [prediction, setPrediction] = useState([]);
   const [shouldFit, setShouldFit] = useState(true);
+
+  const [historyRange, setHistoryRange] = useState("1");
+  const [followMode, setFollowMode] = useState(false);
 
   const [loadingVessels, setLoadingVessels] = useState(true);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
@@ -116,8 +161,16 @@ export default function App() {
           return res.json();
         })
         .then((data) => {
-          setVessels(Array.isArray(data) ? data : []);
+          const parsed = Array.isArray(data) ? data : [];
+          setVessels(parsed);
           setVesselError("");
+
+          if (selected && selectedType === "vessel") {
+            const updated = parsed.find((v) => v.id === selected.id);
+            if (updated) {
+              setSelected(updated);
+            }
+          }
         })
         .catch((err) => {
           console.error("Vessels fetch error:", err);
@@ -130,7 +183,7 @@ export default function App() {
     loadVessels();
     const interval = setInterval(loadVessels, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selected, selectedType]);
 
   useEffect(() => {
     const loadAlerts = () => {
@@ -157,18 +210,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!shouldFit) return;
-    const timer = setTimeout(() => setShouldFit(false), 1000);
+    const timer = setTimeout(() => setShouldFit(false), 1500);
     return () => clearTimeout(timer);
-  }, [shouldFit]);
+  }, []);
 
-  const fetchRoute = async (id, vessel = null) => {
+  const fetchRoute = async (id, vessel = null, rangeHours = historyRange) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/vessels/${id}/history`);
+      const res = await fetch(
+        `http://127.0.0.1:5000/api/vessels/${id}/history?limit=150&range_hours=${rangeHours}`
+      );
       const data = await res.json();
 
       const points = (Array.isArray(data) ? data : [])
-        .slice(-15)
         .map((p) => ({
           lat: Number(p.lat),
           lon: Number(p.lon),
@@ -176,11 +229,7 @@ export default function App() {
         }))
         .filter((p) => !Number.isNaN(p.lat) && !Number.isNaN(p.lon));
 
-      const smoothed = points
-        .slice(-10)
-        .map((p) => [p.lat, p.lon]);
-
-      setRoute(smoothed);
+      setRoute(points.map((p) => [p.lat, p.lon]));
 
       const recentCourses = points
         .slice(-3)
@@ -189,8 +238,7 @@ export default function App() {
 
       let avgCourse = vessel ? Number(vessel.course) : NaN;
       if (recentCourses.length > 0) {
-        avgCourse =
-          recentCourses.reduce((sum, c) => sum + c, 0) / recentCourses.length;
+        avgCourse = recentCourses.reduce((sum, c) => sum + c, 0) / recentCourses.length;
       }
 
       const baseLat =
@@ -210,7 +258,8 @@ export default function App() {
         return;
       }
 
-      const predicted = projectPoint(baseLat, baseLon, avgCourse, 3);
+      const distanceKm = (baseSpeed * 1.852) * (5 / 60);
+      const predicted = projectPoint(baseLat, baseLon, avgCourse, distanceKm);
 
       if (isOnLand(predicted[0], predicted[1])) {
         setPrediction([]);
@@ -228,46 +277,22 @@ export default function App() {
     }
   };
 
-  const calculatePrediction = (v) => {
-    if (!v) {
-      setPrediction([]);
-      return;
+  useEffect(() => {
+    if (selected && selectedType === "vessel") {
+      fetchRoute(selected.id, selected, historyRange);
     }
+  }, [historyRange]);
 
-    const lat = Number(v.lat);
-    const lon = Number(v.lon);
-    const course = Number(v.course);
-    const speed = Number(v.speed);
-
-    if (
-      Number.isNaN(lat) ||
-      Number.isNaN(lon) ||
-      Number.isNaN(course) ||
-      Number.isNaN(speed) ||
-      speed < 1
-    ) {
-      setPrediction([]);
-      return;
+  useEffect(() => {
+    if (followMode && selected && selectedType === "vessel") {
+      fetchRoute(selected.id, selected, historyRange);
     }
+  }, [selected, followMode]);
 
-    const predicted = projectPoint(lat, lon, course, 3);
-
-    if (isOnLand(predicted[0], predicted[1])) {
-      setPrediction([]);
-      return;
-    }
-
-    setPrediction([
-      [lat, lon],
-      predicted,
-    ]);
-  };
-
-  const getConfidenceColor = (confidence) => {
-    const score = Number(confidence) || 0;
-    if (score > 75) return "red";
-    if (score > 50) return "orange";
-    if (score > 25) return "yellow";
+  const getRiskColor = (risk) => {
+    if (risk === "Critical") return "purple";
+    if (risk === "High") return "red";
+    if (risk === "Elevated") return "orange";
     return "green";
   };
 
@@ -294,7 +319,7 @@ export default function App() {
       .filter((v) => !Number.isNaN(v.lat) && !Number.isNaN(v.lon));
 
     if (highRiskOnly) {
-      data = data.filter((v) => Number(v.confidence) > 50);
+      data = data.filter((v) => ["High", "Critical"].includes(v.risk_level));
     }
 
     return data.slice(0, 100);
@@ -310,9 +335,7 @@ export default function App() {
       .filter((a) => !Number.isNaN(a.lat) && !Number.isNaN(a.lon));
 
     if (highRiskOnly) {
-      data = data.filter(
-        (a) => String(a.severity || "").toLowerCase() === "high"
-      );
+      data = data.filter((a) => String(a.severity || "").toLowerCase() === "high");
     }
 
     return data.slice(0, 100);
@@ -321,6 +344,15 @@ export default function App() {
   const totalVisible =
     (showVessels ? visibleVessels.length : 0) +
     (showAlerts ? visibleAlerts.length : 0);
+
+  const topThreats = [...visibleVessels]
+    .filter((v) => ["High", "Critical"].includes(v.risk_level))
+    .sort((a, b) => {
+      const aScore = (a.anomaly_score || 0) + (a.correlation_score || 0);
+      const bScore = (b.anomaly_score || 0) + (b.correlation_score || 0);
+      return bScore - aScore;
+    })
+    .slice(0, 5);
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100%", background: "#0b1020" }}>
@@ -333,16 +365,16 @@ export default function App() {
             left: 12,
             background: "rgba(10,10,10,0.88)",
             color: "#fff",
-            padding: "10px 12px",
-            borderRadius: "10px",
-            minWidth: "220px",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            minWidth: "230px",
             boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
             fontSize: "14px",
           }}
         >
-          <div style={{ fontWeight: "bold", marginBottom: "8px" }}>Phase 10B Controls</div>
+          <div style={{ fontWeight: "bold", marginBottom: "10px" }}>Phase 11 Controls</div>
 
-          <label style={{ display: "block", marginBottom: "6px", cursor: "pointer" }}>
+          <label style={{ display: "block", marginBottom: "8px", cursor: "pointer" }}>
             <input
               type="checkbox"
               checked={showVessels}
@@ -352,7 +384,7 @@ export default function App() {
             Show vessels
           </label>
 
-          <label style={{ display: "block", marginBottom: "6px", cursor: "pointer" }}>
+          <label style={{ display: "block", marginBottom: "8px", cursor: "pointer" }}>
             <input
               type="checkbox"
               checked={showAlerts}
@@ -372,6 +404,64 @@ export default function App() {
             High risk only
           </label>
 
+          <label style={{ display: "block", marginBottom: "10px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={followMode}
+              onChange={() => setFollowMode((prev) => !prev)}
+              style={{ marginRight: "8px" }}
+            />
+            Follow selected vessel
+          </label>
+
+          <div style={{ marginBottom: "10px" }}>
+            <div style={{ marginBottom: "4px" }}>History range</div>
+            <select
+              value={historyRange}
+              onChange={(e) => setHistoryRange(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "6px 8px",
+                borderRadius: "6px",
+                border: "1px solid #333",
+                background: "#111",
+                color: "#fff",
+              }}
+            >
+              <option value="1">Last 1 hour</option>
+              <option value="6">Last 6 hours</option>
+              <option value="24">Last 24 hours</option>
+              <option value="48">Last 48 hours</option>
+            </select>
+          </div>
+
+          <button
+            onClick={() => {
+              if (selected && selectedType === "vessel") {
+                window.dispatchEvent(
+                  new CustomEvent("locate-selected-vessel", {
+                    detail: {
+                      lat: Number(selected.lat),
+                      lon: Number(selected.lon),
+                    },
+                  })
+                );
+              }
+            }}
+            style={{
+              width: "100%",
+              marginBottom: "10px",
+              padding: "8px",
+              borderRadius: "6px",
+              border: "1px solid #333",
+              background: "#111",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Locate selected vessel
+          </button>
+
           <div style={{ opacity: 0.9 }}>Visible items: {totalVisible}</div>
         </div>
 
@@ -385,14 +475,21 @@ export default function App() {
           <FitToData
             vessels={showVessels ? visibleVessels : []}
             alerts={showAlerts ? visibleAlerts : []}
-            route={route}
-            prediction={prediction}
             shouldFit={shouldFit}
           />
 
+          <FollowSelected
+            selected={selected}
+            selectedType={selectedType}
+            followMode={followMode}
+          />
+
+          <LocateSelectedVessel />
+
           {showVessels &&
             visibleVessels.map((v) => {
-              const anomaly = isOnLand(v.lat, v.lon);
+              const movingLandAnomaly =
+                isOnLand(v.lat, v.lon) && Number(v.speed) > 1;
 
               return (
                 <CircleMarker
@@ -400,8 +497,8 @@ export default function App() {
                   center={[v.lat, v.lon]}
                   radius={10}
                   pathOptions={{
-                    color: anomaly ? "purple" : getConfidenceColor(v.confidence),
-                    fillColor: anomaly ? "purple" : getConfidenceColor(v.confidence),
+                    color: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
+                    fillColor: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
                     fillOpacity: 0.85,
                     weight: 3,
                   }}
@@ -409,9 +506,7 @@ export default function App() {
                     click: () => {
                       setSelected(v);
                       setSelectedType("vessel");
-                      fetchRoute(v.id, v);
-                      calculatePrediction(v);
-                      setShouldFit(true);
+                      fetchRoute(v.id, v, historyRange);
                     },
                   }}
                 >
@@ -420,7 +515,7 @@ export default function App() {
                     <br />
                     Type: {v.type || "Unknown"}
                     <br />
-                    Speed: {v.speed ?? "N/A"}
+                    Speed: {v.speed ?? "N/A"} kn
                     <br />
                     Course: {Number.isNaN(v.course) ? "N/A" : v.course}
                     <br />
@@ -430,11 +525,13 @@ export default function App() {
                     <br />
                     Confidence: {v.confidence}
                     <br />
+                    Risk Level: {v.risk_level}
+                    <br />
                     Lat: {v.lat}
                     <br />
                     Lon: {v.lon}
                     <br />
-                    Anomaly: {anomaly ? "Yes" : "No"}
+                    Anomaly: {movingLandAnomaly ? "Yes" : "No"}
                   </Popup>
                 </CircleMarker>
               );
@@ -458,7 +555,6 @@ export default function App() {
                     setSelectedType("alert");
                     setRoute([]);
                     setPrediction([]);
-                    setShouldFit(true);
                   },
                 }}
               >
@@ -506,67 +602,85 @@ export default function App() {
           <div>Alerts: {loadingAlerts ? "Loading..." : visibleAlerts.length}</div>
         </div>
 
-        {vesselError && (
-          <div style={{ background: "#331111", color: "#ffb3b3", padding: "10px", borderRadius: "8px", marginBottom: "12px", fontSize: "13px" }}>
-            Vessel fetch error: {vesselError}
-          </div>
+        <hr style={{ borderColor: "#222", margin: "16px 0" }} />
+        <h3 style={{ marginTop: 0 }}>🔥 Top Threats</h3>
+
+        {topThreats.length === 0 && (
+          <div style={{ opacity: 0.8 }}>No active threats detected.</div>
         )}
 
-        {alertError && (
-          <div style={{ background: "#332211", color: "#ffd59a", padding: "10px", borderRadius: "8px", marginBottom: "12px", fontSize: "13px" }}>
-            Alert fetch error: {alertError}
+        {topThreats.map((v) => (
+          <div
+            key={v.id}
+            style={{
+              marginBottom: "12px",
+              padding: "12px",
+              background: "#111",
+              borderRadius: "12px",
+              border: "1px solid #222",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <strong>{v.name || "Unknown"}</strong>
+              <span
+                style={{
+                  background: "#2b0b0b",
+                  color: "#ff5c5c",
+                  padding: "4px 8px",
+                  borderRadius: "999px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                }}
+              >
+                ● {String(v.risk_level || "").toUpperCase()}
+              </span>
+            </div>
+            <MiniStat label="Confidence" value={v.confidence} />
+            <MiniStat label="Last seen age" value={`${v.last_seen_age_hours ?? "N/A"} hrs`} />
+            <MiniStat label="Flags" value={formatFlags(v.anomaly_flags)} />
           </div>
-        )}
+        ))}
+
+        <hr style={{ borderColor: "#222", margin: "16px 0" }} />
 
         {!selected && <div style={{ opacity: 0.9 }}>Select a vessel or alert on the map.</div>}
 
         {selected && selectedType === "vessel" && (
           <>
-            <h3 style={{ marginBottom: "12px" }}>{selected.name || "Unknown Vessel"}</h3>
-            <p><strong>Category:</strong> Vessel</p>
-            <p><strong>Type:</strong> {selected.type || "Unknown"}</p>
-            <p><strong>Speed:</strong> {selected.speed ?? "N/A"}</p>
-            <p><strong>Course:</strong> {Number.isNaN(Number(selected.course)) ? "N/A" : selected.course}</p>
-            <p><strong>Heading:</strong> {Number.isNaN(Number(selected.heading)) ? "N/A" : selected.heading}</p>
-            <p><strong>Last Seen:</strong> {selected.lastSeen || "N/A"}</p>
-            <p><strong>Confidence:</strong> {selected.confidence ?? 0}</p>
-            <p><strong>Risk Level:</strong> {selected.risk_level || "Unknown"}</p>
-            <p><strong>Latitude:</strong> {selected.lat}</p>
-            <p><strong>Longitude:</strong> {selected.lon}</p>
-            <p><strong>Correlation Score:</strong> {selected.correlation_score ?? 0}</p>
-            <p><strong>Risk Flags:</strong> {(selected.risk_flags || []).join(", ") || "None"}</p>
-            <p><strong>Last Seen Age (hrs):</strong> {selected.last_seen_age_hours ?? "N/A"}</p>
-            <p><strong>Assessment:</strong> {selected.assessment || "No assessment yet"}</p>
+            <h3>{selected.name || "Unknown"}</h3>
+            <MiniStat label="Category" value="Vessel" />
+            <MiniStat label="Type" value={selected.type || "Unknown"} />
+            <MiniStat label="Speed" value={`${selected.speed ?? "N/A"} kn`} />
+            <MiniStat label="Course" value={Number.isNaN(Number(selected.course)) ? "N/A" : selected.course} />
+            <MiniStat label="Heading" value={Number.isNaN(Number(selected.heading)) ? "N/A" : selected.heading} />
+            <MiniStat label="Last Seen" value={selected.lastSeen || "N/A"} />
+            <MiniStat label="Confidence" value={selected.confidence ?? 0} />
+            <MiniStat label="Risk Level" value={selected.risk_level || "Unknown"} />
+            <MiniStat label="Latitude" value={selected.lat} />
+            <MiniStat label="Longitude" value={selected.lon} />
+            <MiniStat label="Correlation Score" value={selected.correlation_score ?? 0} />
+            <MiniStat label="Risk Flags" value={formatFlags(selected.risk_flags)} />
+            <MiniStat label="Anomaly Flags" value={formatFlags(selected.anomaly_flags)} />
+            <MiniStat label="Behavior Flags" value={formatFlags(selected.behavior_flags)} />
+            <MiniStat label="Last Seen Age" value={`${selected.last_seen_age_hours ?? "N/A"} hrs`} />
+            <MiniStat label="Assessment" value={selected.assessment || "No assessment yet"} />
 
-            {isOnLand(selected.lat, selected.lon) && (
-              <p style={{ color: "orange", fontWeight: "bold" }}>⚠️ Position anomaly detected</p>
+            {isOnLand(selected.lat, selected.lon) && Number(selected.speed) > 1 && (
+              <p style={{ color: "orange", fontWeight: "bold" }}>
+                ⚠️ Position anomaly detected
+              </p>
             )}
 
             {selected.score_breakdown && (
               <>
                 <hr style={{ borderColor: "#222", margin: "16px 0" }} />
                 <p><strong>Score Breakdown:</strong></p>
-                <p>Base Confidence: {selected.score_breakdown.base_confidence}</p>
-                <p>Correlation: {selected.score_breakdown.correlation}</p>
-                <p>Anomaly: {selected.score_breakdown.anomaly}</p>
-                <p>Stale Tracking: {selected.score_breakdown.stale_tracking}</p>
-                <p>Type Weight: {selected.score_breakdown.type_weight}</p>
-                <p>Multiple Alert Bonus: {selected.score_breakdown.multiple_alert_bonus}</p>
-              </>
-            )}
-
-            {selected.nearby_alerts && selected.nearby_alerts.length > 0 && (
-              <>
-                <hr style={{ borderColor: "#222", margin: "16px 0" }} />
-                <p><strong>Nearby Alerts:</strong></p>
-                {selected.nearby_alerts.map((alert, idx) => (
-                  <div key={idx} style={{ marginBottom: "10px", padding: "8px", background: "#111", borderRadius: "8px" }}>
-                    <div><strong>{alert.name}</strong></div>
-                    <div>Type: {alert.type}</div>
-                    <div>Severity: {alert.severity}</div>
-                    <div>Distance: {alert.distance_km} km</div>
-                  </div>
-                ))}
+                <MiniStat label="Base Confidence" value={selected.score_breakdown.base_confidence} />
+                <MiniStat label="Correlation" value={selected.score_breakdown.correlation} />
+                <MiniStat label="Anomaly" value={selected.score_breakdown.anomaly} />
+                <MiniStat label="Stale Tracking" value={selected.score_breakdown.stale_tracking} />
+                <MiniStat label="Type Weight" value={selected.score_breakdown.type_weight} />
+                <MiniStat label="Multiple Alert Bonus" value={selected.score_breakdown.multiple_alert_bonus} />
               </>
             )}
           </>
@@ -574,39 +688,12 @@ export default function App() {
 
         {selected && selectedType === "alert" && (
           <>
-            <h3 style={{ marginBottom: "12px" }}>{selected.name || "Alert"}</h3>
-            <p><strong>Category:</strong> Alert</p>
-            <p><strong>Type:</strong> {selected.type || "Unknown"}</p>
-            <p><strong>Severity:</strong> {selected.severity || "N/A"}</p>
-            <p><strong>Latitude:</strong> {selected.lat}</p>
-            <p><strong>Longitude:</strong> {selected.lon}</p>
-            <p><strong>Nearby Vessel Count:</strong> {selected.vessel_count ?? 0}</p>
-            <p><strong>Nearest Vessel Distance:</strong> {selected.nearest_vessel_distance ?? "N/A"} km</p>
-
-            <hr style={{ borderColor: "#222", margin: "16px 0" }} />
-
-            <p><strong>Assessment:</strong></p>
-            <p style={{ lineHeight: 1.5 }}>
-              {selected.vessel_count > 0
-                ? `This alert is geographically linked to ${selected.vessel_count} nearby vessel(s), with the nearest vessel at ${selected.nearest_vessel_distance} km.`
-                : "No nearby vessels are currently linked to this alert."}
-            </p>
-
-            {selected.nearby_vessels && selected.nearby_vessels.length > 0 && (
-              <>
-                <hr style={{ borderColor: "#222", margin: "16px 0" }} />
-                <p><strong>Nearby Vessels:</strong></p>
-                {selected.nearby_vessels.map((vessel, idx) => (
-                  <div key={idx} style={{ marginBottom: "10px", padding: "8px", background: "#111", borderRadius: "8px" }}>
-                    <div><strong>{vessel.name}</strong></div>
-                    <div>Type: {vessel.type}</div>
-                    <div>Risk: {vessel.risk_level || "Unknown"}</div>
-                    <div>Confidence: {vessel.confidence}</div>
-                    <div>Distance: {vessel.distance_km} km</div>
-                  </div>
-                ))}
-              </>
-            )}
+            <h3>{selected.name || "Alert"}</h3>
+            <MiniStat label="Category" value="Alert" />
+            <MiniStat label="Type" value={selected.type || "Unknown"} />
+            <MiniStat label="Severity" value={selected.severity || "N/A"} />
+            <MiniStat label="Latitude" value={selected.lat} />
+            <MiniStat label="Longitude" value={selected.lon} />
           </>
         )}
       </div>

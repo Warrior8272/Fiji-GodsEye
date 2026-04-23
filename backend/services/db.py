@@ -117,7 +117,7 @@ def upsert_vessel(record):
     conn.commit()
     conn.close()
 
-def insert_vessel_history(record):
+def insert_vessel_history(record, max_points_per_vessel=2000):
     conn = get_conn()
     cur = conn.cursor()
 
@@ -137,36 +137,65 @@ def insert_vessel_history(record):
         record.get("source")
     ))
 
+    # keep only the most recent N points per vessel
+    cur.execute("""
+    DELETE FROM vessel_history
+    WHERE history_id NOT IN (
+        SELECT history_id
+        FROM vessel_history
+        WHERE vessel_id = ?
+        ORDER BY recorded_at DESC
+        LIMIT ?
+    )
+    AND vessel_id = ?
+    """, (
+        record["id"],
+        max_points_per_vessel,
+        record["id"]
+    ))
+
     conn.commit()
     conn.close()
 
-def list_alerts(limit=100):
+
+def get_vessel_history(vessel_id, limit=100, range_hours=None):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-    SELECT id, source, name, type, severity, indicator, target_region,
-           lat, lon, first_seen, confidence
-    FROM alerts
-    ORDER BY first_seen DESC
-    LIMIT ?
-    """, (limit,))
+    if range_hours is not None:
+        cur.execute("""
+        SELECT vessel_id, name, lat, lon, speed, course, heading, recorded_at, source
+        FROM vessel_history
+        WHERE vessel_id = ?
+          AND recorded_at >= datetime('now', ?)
+        ORDER BY recorded_at DESC
+        LIMIT ?
+        """, (vessel_id, f'-{int(range_hours)} hours', limit))
+    else:
+        cur.execute("""
+        SELECT vessel_id, name, lat, lon, speed, course, heading, recorded_at, source
+        FROM vessel_history
+        WHERE vessel_id = ?
+        ORDER BY recorded_at DESC
+        LIMIT ?
+        """, (vessel_id, limit))
+
     rows = cur.fetchall()
     conn.close()
+
+    rows = list(reversed(rows))
 
     return [
         {
             "id": r[0],
-            "source": r[1],
-            "name": r[2],
-            "type": r[3],
-            "severity": r[4],
-            "indicator": r[5],
-            "target_region": r[6],
-            "lat": r[7],
-            "lon": r[8],
-            "first_seen": r[9],
-            "confidence": r[10],
+            "name": r[1],
+            "lat": r[2],
+            "lon": r[3],
+            "speed": r[4],
+            "course": r[5],
+            "heading": r[6],
+            "recorded_at": r[7],
+            "source": r[8],
         }
         for r in rows
     ]
@@ -230,3 +259,35 @@ def get_vessel_history(vessel_id, limit=50):
         }
         for r in rows
     ]
+def list_alerts(limit=100):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT id, source, name, type, severity, indicator, target_region,
+           lat, lon, first_seen, confidence
+    FROM alerts
+    ORDER BY first_seen DESC
+    LIMIT ?
+    """, (limit,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    return [
+        {
+            "id": r[0],
+            "source": r[1],
+            "name": r[2],
+            "type": r[3],
+            "severity": r[4],
+            "indicator": r[5],
+            "target_region": r[6],
+            "lat": r[7],
+            "lon": r[8],
+            "first_seen": r[9],
+            "confidence": r[10],
+        }
+        for r in rows
+    ]
+

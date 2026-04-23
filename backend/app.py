@@ -41,7 +41,18 @@ def handle_vessels():
 
 @app.route("/api/vessels/<path:vessel_id>/history")
 def vessel_history(vessel_id):
-    return jsonify(get_vessel_history(vessel_id, 100))
+    limit = request.args.get("limit", default=150, type=int)
+    range_hours = request.args.get("range_hours", default=None, type=int)
+
+    if limit < 10:
+        limit = 10
+    if limit > 500:
+        limit = 500
+
+    if range_hours is not None and range_hours < 1:
+        range_hours = 1
+
+    return jsonify(get_vessel_history(vessel_id, limit, range_hours))
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=5000)
