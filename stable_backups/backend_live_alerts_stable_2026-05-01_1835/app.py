@@ -1,0 +1,187 @@
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+
+from services.db import init_db, list_alerts, list_vessels, get_vessel_history, upsert_vessel
+from services.correlation import correlate_vessels_alerts
+from services.intelligence import score_vessels
+from services.alert_correlation import correlate_alerts_vessels
+
+app = Flask(__name__)
+CORS(app)
+
+init_db()
+live_vessels = []
+
+def get_scored_vessels():
+    vessels_data = list_vessels(100)
+    alerts_data = []
+    correlated = correlate_vessels_alerts(vessels_data, alerts_data, radius_km=80)
+    scored = score_vessels(correlated)
+    return scored
+
+
+def generate_alerts(vessels):
+    alerts = []
+    for v in vessels:
+        confidence = v.get("confidence", 0)
+        flags = v.get("anomaly_flags", [])
+
+        if confidence >= 85:
+            alerts.append({
+                "id": v.get("id"),
+                "type": "HIGH_THREAT",
+                "message": "High confidence threat detected",
+                "vessel": v
+            })
+        elif confidence >= 70:
+            alerts.append({
+                "id": v.get("id"),
+                "type": "ELEVATED_THREAT",
+                "message": "Elevated risk vessel",
+                "vessel": v
+            })
+
+        if "land_movement" in flags:
+            alerts.append({
+                "id": v.get("id"),
+                "type": "SPOOFING",
+                "message": "Possible GPS spoofing detected",
+                "vessel": v
+            })
+
+        if v.get("speed", 0) == 0:
+            alerts.append({
+                "id": v.get("id"),
+                "type": "LOITERING",
+                "message": "Vessel stationary in monitored zone",
+                "vessel": v
+            })
+
+    return alerts
+
+
+
+def safe_generate_alerts(vessels):
+    alerts = []
+
+    for v in vessels:
+        confidence = v.get("confidence", 0)
+        flags = v.get("anomaly_flags", [])
+        speed = v.get("speed", 0)
+
+        if confidence >= 85:
+            alerts.append({"type": "HIGH", "msg": "High confidence vessel", "id": v.get("id")})
+        elif confidence >= 70:
+            alerts.append({"type": "ELEVATED", "msg": "Elevated vessel", "id": v.get("id")})
+
+        if "land_movement" in flags:
+            alerts.append({"type": "SPOOFING", "msg": "Possible GPS spoofing", "id": v.get("id")})
+
+        if speed == 0:
+            alerts.append({"type": "LOITERING", "msg": "Stationary vessel", "id": v.get("id")})
+
+    return alerts
+
+@app.route("/api/alerts")
+def alerts():
+    alerts_data = []
+    scored_vessels = get_scored_vessels()
+    enriched_alerts = correlate_alerts_vessels(alerts_data, scored_vessels, radius_km=80)
+    return jsonify(safe_generate_alerts(get_scored_vessels()))
+
+@app.route("/api/vessels", methods=["GET", "POST"])
+def handle_vessels():
+    global live_vessels
+
+    if request.method == "POST":
+        data = request.json
+        upsert_vessel(data)
+        return {"status": "added"}
+
+    return jsonify(get_scored_vessels())
+
+@app.route("/api/vessels/<path:vessel_id>/history")
+def vessel_history(vessel_id):
+    limit = request.args.get("limit", default=150, type=int)
+    range_hours = request.args.get("range_hours", default=None, type=int)
+
+    if limit < 10:
+        limit = 10
+    if limit > 500:
+        limit = 500
+
+    if range_hours is not None and range_hours < 1:
+        range_hours = 1
+
+    return jsonify(get_vessel_history(vessel_id, limit, range_hours))
+
+
+
+# ===== PDF REPORT ROUTE =====
+
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from datetime import datetime
+from flask import send_file
+import io
+
+@app.route("/api/report/pdf")
+def generate_pdf():
+    vessels = get_scored_vessels()
+    alerts = list_alerts(100)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Title
+    elements.append(Paragraph("GODS EYE - Operational Maritime Intelligence Report", styles["Title"]))
+    elements.append(Spacer(1, 12))
+
+    # Meta
+    elements.append(Paragraph("Region: Fiji-Pacific EEZ", styles["Normal"]))
+    elements.append(Paragraph(f"Generated: {datetime.utcnow()} UTC", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    # Summary
+    elements.append(Paragraph("Summary", styles["Heading2"]))
+    elements.append(Paragraph(f"Total vessels: {len(vessels)}", styles["Normal"]))
+
+    if len(vessels) == 0:
+        elements.append(Paragraph("No maritime activity detected.", styles["Normal"]))
+    else:
+        elements.append(Paragraph("Maritime activity detected across monitored zones.", styles["Normal"]))
+
+    elements.append(Spacer(1, 12))
+
+    # ---- THREAT TABLE ----
+    elements.append(Paragraph("Observed Vessels - Top 10", styles["Heading2"]))
+
+    def classify(v):
+
+        speed = v.get("speed", 0) or 0
+
+
+        if speed < 1:
+            return "Port Loitering"
+        elif speed < 2:
+            return "Suspicious Drift"
+        return "Transit"
+
+
+    
+
+def risk_level(threat):
+    if "Anchored" in threat or "Loitering" in threat:
+        return "MEDIUM"
+    if "Slow" in threat:
+        return "LOW-MEDIUM"
+    return "LOW"
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000, debug=True)

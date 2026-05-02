@@ -1,184 +1,1133 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+body {
+  overflow: hidden;
+  background: #05080d;
+  color: #d8f3ff;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
 }
 
-#center {
+* {
+  box-sizing: border-box;
+}
+
+.app,
+.dashboard,
+.godseye-app {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  background: #05080d;
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
 }
 
-#next-steps {
+/* Main tactical command layout */
+.main-layout,
+.map-layout,
+.content,
+.map-shell {
+  flex: 1 1 auto !important;
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 0;
   display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
+  background: #05080d;
 }
 
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
+/* Map takes command priority */
+.map-container,
+.leaflet-container {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: #07111c !important;
 }
 
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
+/* Tactical panels */
+.left-panel,
+.right-panel,
+.alert-panel,
+.watchlist-panel,
+.panel,
+.card,
+.sidebar {
+  background: rgba(5, 12, 22, 0.88) !important;
+  border: 1px solid rgba(0, 220, 255, 0.28) !important;
+  box-shadow: 0 0 18px rgba(0, 180, 255, 0.18) !important;
+  backdrop-filter: blur(8px);
+  color: #d8f3ff !important;
+  border-radius: 8px !important;
 }
 
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
+/* Keep panels compact */
+.left-panel,
+.sidebar {
+  width: 300px !important;
+  max-width: 300px !important;
 }
 
-.ticks {
+.right-panel,
+.alert-panel,
+.watchlist-panel {
+  width: 340px !important;
+  max-width: 340px !important;
+}
+
+/* Headers / titles */
+h1, h2, h3, .title, .panel-title {
+  color: #7ee7ff !important;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  font-weight: 700;
+}
+
+/* Buttons and toggles */
+button,
+.toggle,
+.layer-toggle {
+  background: linear-gradient(180deg, #10283a, #07131f) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.45) !important;
+  border-radius: 6px !important;
+  padding: 6px 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover,
+.toggle:hover,
+.layer-toggle:hover {
+  background: #123a52 !important;
+  box-shadow: 0 0 10px rgba(0, 220, 255, 0.35);
+}
+
+/* Alert colours */
+.high,
+.high-risk,
+.risk-high,
+.alert-high {
+  color: #ff4d4d !important;
+  border-color: rgba(255, 77, 77, 0.65) !important;
+}
+
+.medium,
+.medium-risk,
+.risk-medium,
+.alert-medium {
+  color: #ffd166 !important;
+  border-color: rgba(255, 209, 102, 0.65) !important;
+}
+
+.low,
+.low-risk,
+.risk-low,
+.alert-low {
+  color: #4dff9d !important;
+  border-color: rgba(77, 255, 157, 0.55) !important;
+}
+
+/* Leaflet tactical styling */
+.leaflet-control,
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgba(5, 12, 22, 0.94) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.35) !important;
+}
+
+.leaflet-control a {
+  background: #07131f !important;
+  color: #7ee7ff !important;
+  border-color: rgba(0, 220, 255, 0.25) !important;
+}
+
+/* Tactical grid overlay effect */
+.map-shell::after,
+.map-layout::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 220, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 220, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  z-index: 500;
+}
+
+/* Data labels */
+.badge,
+.label,
+.status,
+.data-source,
+.last-updated {
+  background: rgba(0, 220, 255, 0.08) !important;
+  border: 1px solid rgba(0, 220, 255, 0.32) !important;
+  color: #9ff3ff !important;
+  border-radius: 999px !important;
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  letter-spacing: 0.5px;
+}
+
+/* Tables/cards */
+table,
+.vessel-card,
+.alert-card,
+.report-card {
+  background: rgba(3, 10, 18, 0.82) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.22) !important;
+  border-radius: 8px !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #05080d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #164b63;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1f6f8d;
+}
+
+/* MASTER GRID (THIS IS THE FIX) */
+.app-root {
+  display: grid;
+  grid-template-columns: 300px 1fr 340px;
+  grid-template-rows: 100vh;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* LEFT PANEL */
+.left-panel {
+  grid-column: 1;
+  background: rgba(5,12,22,0.95);
+  padding: 15px;
+  border-right: 1px solid rgba(0,220,255,0.2);
+}
+
+/* CENTER MAP */
+.map-wrapper {
+  grid-column: 2;
   position: relative;
+}
+
+.map-container {
   width: 100%;
+  height: 100%;
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
+/* RIGHT PANEL */
+.right-panel {
+  grid-column: 3;
+  background: rgba(5,12,22,0.95);
+  padding: 15px;
+  border-left: 1px solid rgba(0,220,255,0.2);
+}
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
+/* ALERT CARDS */
+.alert {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.alert.high {
+  background: rgba(255,0,0,0.2);
+  border: 1px solid rgba(255,0,0,0.5);
+}
+
+
+/* ===== FORCE FULLSCREEN LAYOUT ===== */
+html, body, #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Remove any container limits */
+.app, .dashboard, .main-layout, .content {
+  width: 100vw !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ===== MAP TAKES FULL WIDTH ===== */
+.leaflet-container {
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 1;
+}
+
+/* ===== LEFT CONTROL PANEL (FLOATING COMMAND) ===== */
+.left-panel,
+.phase-controls {
+  position: absolute !important;
+  top: 20px;
+  left: 20px;
+  width: 280px;
+  z-index: 1000;
+
+  background: rgba(5, 12, 22, 0.92);
+  border: 1px solid rgba(0, 220, 255, 0.25);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* ===== RIGHT INTEL PANEL (DOCKED) ===== */
+.right-panel,
+.intelligence-panel {
+  position: absolute !important;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 340px;
+  z-index: 1000;
+
+  background: rgba(5, 12, 22, 0.95);
+  border-left: 1px solid rgba(0, 220, 255, 0.25);
+  padding: 14px;
+
+  overflow-y: auto;
+}
+
+/* ===== LEGEND POSITION ===== */
+.map-legend {
+  position: absolute !important;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+/* ===== REMOVE SIDE GAPS ===== */
+.leaflet-container,
+.map-container,
+#map {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ===== CLEAN TOP LABEL ===== */
+.last-updated {
+  position: absolute !important;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
+
+/* ===== TACTICAL GRID OVERLAY ===== */
+.leaflet-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+
+  background-size: 50px 50px;
+  z-index: 500;
+}
+
+/* ===== IMPROVE ALERT VISIBILITY ===== */
+.alert, .alert-card {
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.alert.high {
+  background: rgba(255, 0, 0, 0.25);
+  border: 1px solid rgba(255, 0, 0, 0.6);
+}
+
+/* ===== SCROLL FIX ===== */
+.right-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.right-panel::-webkit-scrollbar-thumb {
+  background: #0aa;
+  border-radius: 10px;
+}
+
+
+/* ===== GOD'S EYE FULLSCREEN MAP FIX ===== */
+
+html, body, #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #05080d !important;
+}
+
+/* Force every possible app wrapper full width */
+body > div,
+#root > div,
+.app,
+.dashboard,
+.godseye-app,
+.main-layout,
+.map-layout,
+.content,
+.map-shell,
+.map-wrapper,
+.map-container {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  left: 0 !important;
+}
+
+/* Force Leaflet map to occupy the screen */
+.leaflet-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 340px !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  z-index: 1 !important;
+}
+
+/* Right intelligence dock */
+.intelligence-panel,
+.right-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 340px !important;
+  height: 100vh !important;
+  z-index: 2000 !important;
+  overflow-y: auto !important;
+}
+
+/* Left tactical controls */
+.phase-controls,
+.left-panel {
+  position: fixed !important;
+  top: 20px !important;
+  left: 70px !important;
+  width: 280px !important;
+  z-index: 2000 !important;
+}
+
+/* Legend */
+.map-legend {
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 70px !important;
+  z-index: 2000 !important;
+}
+
+/* Last updated badge */
+.last-updated {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 2000 !important;
+}
+
+
+/* ===== HARD EDGE-TO-EDGE COMMAND DASHBOARD FIX ===== */
+
+html, body, #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #05080d !important;
+}
+
+/* Stop the whole dashboard being centred */
+#root,
+#root > div,
+.app,
+.dashboard,
+.godseye-app,
+.main-layout,
+.map-layout,
+.content,
+.map-shell,
+.map-wrapper,
+.map-container {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+/* Force map to fill screen except right intel dock */
+.leaflet-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 340px !important;
+  bottom: 0 !important;
+  width: calc(100vw - 340px) !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 1 !important;
+  background: #07111c !important;
+}
+
+/* Force all Leaflet internals to behave */
+.leaflet-map-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-marker-pane,
+.leaflet-shadow-pane,
+.leaflet-tile-container {
+  z-index: auto;
+}
+
+/* Right intelligence panel - catch different class names */
+.right-panel,
+.intelligence-panel,
+.intel-panel,
+[class*="right"],
+[class*="Right"],
+[class*="intelligence"],
+[class*="Intelligence"] {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  left: auto !important;
+  width: 340px !important;
+  height: 100vh !important;
+  max-width: 340px !important;
+  z-index: 3000 !important;
+  overflow-y: auto !important;
+  background: rgba(5, 12, 22, 0.96) !important;
+}
+
+/* Left floating control box */
+.left-panel,
+.phase-controls,
+.controls-panel,
+[class*="control"],
+[class*="Control"] {
+  position: fixed !important;
+  top: 20px !important;
+  left: 70px !important;
+  width: 280px !important;
+  max-width: 280px !important;
+  z-index: 3000 !important;
+}
+
+/* Legend */
+.map-legend,
+.legend,
+[class*="legend"],
+[class*="Legend"] {
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 70px !important;
+  z-index: 3000 !important;
+}
+
+/* Last updated badge */
+.last-updated,
+[class*="updated"],
+[class*="Updated"] {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 3000 !important;
+}
+
+
+/* ===== ROOT CONTAINER OVERRIDE (THIS IS THE REAL FIX) ===== */
+
+/* Kill Vite default centering */
+#root {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* Kill any flex centering from templates */
+body {
+  display: block !important;
+}
+
+/* Remove any global centering wrappers */
+body > div {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure map truly fills */
+.leaflet-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 340px !important;
+  bottom: 0 !important;
+  width: calc(100vw - 340px) !important;
+  height: 100vh !important;
+  z-index: 1 !important;
+}
+
+/* Right panel stays locked */
+.right-panel,
+.intelligence-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 340px !important;
+  height: 100vh !important;
+  z-index: 2000 !important;
+}
+
+/* Left controls float */
+.phase-controls {
+  position: fixed !important;
+  top: 20px !important;
+  left: 70px !important;
+  z-index: 2000 !important;
+}
+
+/* Fix the white top/bottom gaps */
+.leaflet-container,
+.map-container {
+  background: #07111c !important;
+}
+
+
+/* ===== RIGHT PANEL TIDY-UP ===== */
+
+.right-panel,
+.intelligence-panel {
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: 14px !important;
+  padding: 14px !important;
+  background: rgba(4, 8, 14, 0.97) !important;
+  border-left: 1px solid rgba(0, 220, 255, 0.25) !important;
+  color: #e7f6ff !important;
+}
+
+/* Headings */
+.right-panel h1,
+.right-panel h2,
+.right-panel h3,
+.right-panel h4,
+.intelligence-panel h1,
+.intelligence-panel h2,
+.intelligence-panel h3,
+.intelligence-panel h4 {
+  margin: 10px 0 12px 0 !important;
+  padding: 0 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.4px !important;
+  color: #f3fbff !important;
+}
+
+/* Active alerts title */
+.right-panel .active-alerts,
+.intelligence-panel .active-alerts,
+.right-panel [class*="alert-title"],
+.intelligence-panel [class*="alert-title"] {
+  color: #ff4d4d !important;
+  font-weight: 700 !important;
+}
+
+/* Alert cards */
+.right-panel .alert,
+.right-panel .alert-card,
+.intelligence-panel .alert,
+.intelligence-panel .alert-card {
+  background: linear-gradient(180deg, rgba(100, 0, 0, 0.78), rgba(45, 0, 0, 0.92)) !important;
+  border: 1px solid rgba(255, 65, 65, 0.45) !important;
+  border-left: 4px solid #ff3333 !important;
+  border-radius: 8px !important;
+  margin: 8px 0 !important;
+  padding: 10px 12px !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.12) !important;
+}
+
+/* Alert text */
+.right-panel .alert *,
+.right-panel .alert-card *,
+.intelligence-panel .alert *,
+.intelligence-panel .alert-card * {
+  margin: 2px 0 !important;
+  line-height: 1.35 !important;
+}
+
+/* LOITERING label */
+.right-panel .alert strong,
+.right-panel .alert-card strong,
+.intelligence-panel .alert strong,
+.intelligence-panel .alert-card strong {
+  color: #ffffff !important;
+  font-size: 13px !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Sentinel/watchlist/report cards */
+.right-panel > div,
+.intelligence-panel > div {
+  border-radius: 10px;
+}
+
+/* Generate report button */
+.right-panel button,
+.intelligence-panel button {
+  width: 100% !important;
+  margin-top: 8px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+}
+
+/* Reduce oversized spacing */
+.right-panel p,
+.intelligence-panel p {
+  margin: 6px 0 !important;
+  line-height: 1.35 !important;
+}
+
+/* Make right panel scroll smoother */
+.right-panel,
+.intelligence-panel {
+  scrollbar-width: thin;
+  overflow-y: auto !important;
+}
+
+
+/* ===== ELITE PANEL POLISH ===== */
+
+/* Section spacing */
+.right-panel > * {
+  margin-bottom: 14px !important;
+}
+
+/* Section dividers */
+.right-panel hr {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin: 12px 0;
+}
+
+/* Make alert cards tighter + aligned */
+.alert, .alert-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Improve LOITERING header */
+.alert strong,
+.alert-card strong {
+  font-size: 12px !important;
+  letter-spacing: 0.6px;
+}
+
+/* AIS text subtle */
+.alert small,
+.alert-card small {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+/* Hover effect (feels premium) */
+.alert:hover,
+.alert-card:hover {
+  transform: translateX(2px);
+  transition: all 0.15s ease;
+  box-shadow: 0 0 12px rgba(255,0,0,0.25);
+}
+
+/* Sentinel + Watchlist cards cleaner */
+.right-panel .card,
+.right-panel > div {
+  background: rgba(10,15,25,0.9) !important;
+  border: 1px solid rgba(255,255,255,0.05);
+  padding: 12px;
+}
+
+/* Button polish */
+.right-panel button {
+  background: linear-gradient(180deg, #2f6fed, #1d4ed8) !important;
+  border: none !important;
+  font-size: 13px;
+}
+
+.right-panel button:hover {
+  background: linear-gradient(180deg, #3b82f6, #2563eb) !important;
+}
+
+
+/* ===== SELECTED VESSEL INTELLIGENCE CARD ===== */
+.selected-intel-card {
+  background: linear-gradient(180deg, rgba(0, 35, 55, 0.95), rgba(0, 15, 25, 0.98)) !important;
+  border: 1px solid rgba(0, 220, 255, 0.55) !important;
+  border-left: 4px solid #00dfff !important;
+  border-radius: 10px !important;
+  padding: 12px !important;
+  margin: 12px 0 !important;
+  color: #e8fbff !important;
+  box-shadow: 0 0 14px rgba(0, 220, 255, 0.18) !important;
+}
+
+.selected-intel-card h3 {
+  margin: 0 0 10px 0 !important;
+  color: #7ee7ff !important;
+}
+
+.selected-intel-card p {
+  margin: 5px 0 !important;
+  font-size: 13px !important;
+}
+
+.selected-intel-card b {
+  color: #9ff3ff !important;
+}
+
+/* ===== SELECTED VESSEL INTELLIGENCE CARD ===== */
+.selected-intel-card {
+  background: linear-gradient(180deg, rgba(0, 35, 55, 0.95), rgba(0, 15, 25, 0.98)) !important;
+  border: 1px solid rgba(0, 220, 255, 0.55) !important;
+  border-left: 4px solid #00dfff !important;
+  border-radius: 10px !important;
+  padding: 12px !important;
+  margin: 12px 0 !important;
+  color: #e8fbff !important;
+  box-shadow: 0 0 14px rgba(0, 220, 255, 0.18) !important;
+}
+
+.selected-intel-card h3 {
+  margin: 0 0 10px 0 !important;
+  color: #7ee7ff !important;
+}
+
+.selected-intel-card p {
+  margin: 5px 0 !important;
+  font-size: 13px !important;
+}
+
+.selected-intel-card b {
+  color: #9ff3ff !important;
+}
+
+/* ===== THREAT SCORE BADGE ===== */
+
+.threat-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  margin-top: 4px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.threat-low {
+  background: rgba(0,255,136,0.15);
+  border: 1px solid rgba(0,255,136,0.4);
+  color: #00ff88;
+}
+
+.threat-medium {
+  background: rgba(255,170,0,0.15);
+  border: 1px solid rgba(255,170,0,0.4);
+  color: #ffaa00;
+}
+
+.threat-high {
+  background: rgba(255,0,0,0.15);
+  border: 1px solid rgba(255,0,0,0.5);
+  color: #ff3333;
+}
+
+
+/* ===== LEFT PANEL POSITION FIX ===== */
+
+.phase-controls,
+.left-panel {
+  left: 20px !important;   /* was too far left */
+  padding-left: 14px !important;
+}
+
+/* Prevent text clipping */
+.phase-controls h3,
+.left-panel h3 {
+  padding-left: 4px !important;
+}
+
+
+/* ===== ELITE LEFT COMMAND PANEL ===== */
+
+.phase-controls,
+.left-panel {
+  background: linear-gradient(180deg, rgba(3, 10, 18, 0.96), rgba(5, 15, 24, 0.92)) !important;
+  border: 1px solid rgba(0, 220, 255, 0.35) !important;
+  border-left: 4px solid #00dfff !important;
+  box-shadow: 0 0 18px rgba(0, 220, 255, 0.18) !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  color: #e8fbff !important;
+}
+
+/* Header */
+.phase-controls h3,
+.left-panel h3 {
+  color: #7ee7ff !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  font-size: 14px !important;
+  margin-bottom: 14px !important;
+  border-bottom: 1px solid rgba(0, 220, 255, 0.25);
+  padding-bottom: 8px !important;
+}
+
+/* Labels */
+.phase-controls label,
+.left-panel label {
+  display: block !important;
+  margin: 8px 0 !important;
+  font-size: 13px !important;
+  color: #d9f7ff !important;
+}
+
+/* Dropdown */
+.phase-controls select,
+.left-panel select {
+  width: 100% !important;
+  background: #07131f !important;
+  color: #e8fbff !important;
+  border: 1px solid rgba(0, 220, 255, 0.35) !important;
+  border-radius: 6px !important;
+  padding: 7px !important;
+  margin: 6px 0 10px 0 !important;
+}
+
+/* Button */
+.phase-controls button,
+.left-panel button {
+  width: 100% !important;
+  background: linear-gradient(180deg, #123a52, #07131f) !important;
+  color: #e8fbff !important;
+  border: 1px solid rgba(0, 220, 255, 0.45) !important;
+  border-radius: 7px !important;
+  padding: 8px !important;
+  font-weight: 700 !important;
+}
+
+.phase-controls button:hover,
+.left-panel button:hover {
+  box-shadow: 0 0 12px rgba(0, 220, 255, 0.35) !important;
+}
+
+/* Visible items text */
+.phase-controls p,
+.left-panel p {
+  color: #9ff3ff !important;
+  font-size: 12px !important;
+}
+
+
+/* ===== AUTO THREAT BADGES ===== */
+
+.threat-badge {
+  display: inline-block;
+  margin: 4px 0 5px 0;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+.threat-low {
+  background: rgba(0,255,136,0.15);
+  border: 1px solid rgba(0,255,136,0.45);
+  color: #00ff88;
+}
+
+.threat-medium {
+  background: rgba(255,170,0,0.15);
+  border: 1px solid rgba(255,170,0,0.45);
+  color: #ffaa00;
+}
+
+.threat-high {
+  background: rgba(255,0,0,0.18);
+  border: 1px solid rgba(255,0,0,0.55);
+  color: #ff4d4d;
+}
+
+.threat-unknown {
+  background: rgba(180,180,180,0.15);
+  border: 1px solid rgba(180,180,180,0.4);
+  color: #ccc;
+}
+
+/* ===== DARK VESSEL TIMER LABEL ===== */
+.dark-vessel-label {
+  background: rgba(80, 0, 0, 0.95) !important;
+  color: #ffdddd !important;
+  border: 1px solid rgba(255, 0, 0, 0.75) !important;
+  border-radius: 6px !important;
+  padding: 4px 7px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.35) !important;
+}
+
+.dark-vessel-label::before {
+  display: none !important;
+}
+
+/* ===== TARGET LOCK SELECTED VESSEL ===== */
+
+.selected-intel-card {
+  position: relative !important;
+  border: 1px solid #00eaff !important;
+  border-left: 5px solid #00eaff !important;
+  box-shadow:
+    0 0 18px rgba(0, 234, 255, 0.35),
+    inset 0 0 18px rgba(0, 234, 255, 0.08) !important;
+  animation: targetPulse 1.8s infinite ease-in-out;
+}
+
+.selected-intel-card::before {
+  content: "TARGET LOCK";
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  background: #001b24;
+  color: #00eaff;
+  border: 1px solid #00eaff;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+@keyframes targetPulse {
+  0% { box-shadow: 0 0 10px rgba(0,234,255,0.2); }
+  50% { box-shadow: 0 0 22px rgba(0,234,255,0.55); }
+  100% { box-shadow: 0 0 10px rgba(0,234,255,0.2); }
+}
+
+/* Tactical selected text */
+.selected-intel-card h3 {
+  color: #00eaff !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.selected-intel-card p {
+  border-bottom: 1px solid rgba(0, 234, 255, 0.12);
+  padding-bottom: 4px;
+}
+
+/* ===== TARGET LOCK - BOTH SELECTED PANELS ===== */
+
+.selected-intel-card,
+.right-panel h3:has(+ .mini-stat),
+.intelligence-panel h3:has(+ .mini-stat) {
+  border-color: #00eaff !important;
+}
+
+/* Make selected vessel card impossible to miss */
+.selected-intel-card {
+  background: linear-gradient(180deg, rgba(0, 25, 35, 0.98), rgba(0, 8, 14, 0.98)) !important;
+  border: 1px solid #00eaff !important;
+  border-left: 5px solid #00eaff !important;
+  box-shadow:
+    0 0 20px rgba(0, 234, 255, 0.45),
+    inset 0 0 18px rgba(0, 234, 255, 0.12) !important;
+  animation: targetPulse 1.6s infinite ease-in-out !important;
+}
+
+.selected-intel-card::before {
+  content: "TARGET LOCK";
+  display: inline-block;
+  background: rgba(0, 234, 255, 0.12);
+  border: 1px solid #00eaff;
+  color: #00eaff;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+@keyframes targetPulse {
+  0% { box-shadow: 0 0 10px rgba(0,234,255,0.25); }
+  50% { box-shadow: 0 0 26px rgba(0,234,255,0.7); }
+  100% { box-shadow: 0 0 10px rgba(0,234,255,0.25); }
+}
+
+/* ===== RIGHT PANEL SELECTED TARGET POLISH ===== */
+
+.right-panel h3,
+.intelligence-panel h3 {
+  color: #00eaff !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+.right-panel h3::before,
+.intelligence-panel h3::before {
+  content: "🎯 TARGET LOCK  ";
+  color: #00eaff;
+}
+
+.right-panel .mini-stat,
+.intelligence-panel .mini-stat {
+  background: rgba(0, 234, 255, 0.08) !important;
+  border: 1px solid rgba(0, 234, 255, 0.22) !important;
+  border-radius: 6px !important;
+  padding: 6px 8px !important;
+  margin: 5px 0 !important;
+}
+
+.right-panel,
+.intelligence-panel {
+  box-shadow: inset 4px 0 0 rgba(0, 234, 255, 0.5) !important;
 }

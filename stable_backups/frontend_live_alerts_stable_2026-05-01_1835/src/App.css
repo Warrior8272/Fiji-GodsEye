@@ -1,0 +1,401 @@
+.counter {
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
+  margin-bottom: 24px;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.hero {
+  position: relative;
+
+  .base,
+  .framework,
+  .vite {
+    inset-inline: 0;
+    margin: 0 auto;
+  }
+
+  .base {
+    width: 170px;
+    position: relative;
+    z-index: 0;
+  }
+
+  .framework,
+  .vite {
+    position: absolute;
+  }
+
+  .framework {
+    z-index: 1;
+    top: 34px;
+    height: 28px;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
+      scale(1.4);
+  }
+
+  .vite {
+    z-index: 0;
+    top: 107px;
+    height: 26px;
+    width: auto;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
+      scale(0.8);
+  }
+}
+
+#center {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  place-content: center;
+  place-items: center;
+  flex-grow: 1;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px 24px;
+    gap: 18px;
+  }
+}
+
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: left;
+
+  & > div {
+    flex: 1 1 0;
+    padding: 32px;
+    @media (max-width: 1024px) {
+      padding: 24px 20px;
+    }
+  }
+
+  .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+  }
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+#docs {
+  border-right: 1px solid var(--border);
+
+  @media (max-width: 1024px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+#next-steps ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  margin: 32px 0 0;
+
+  .logo {
+    height: 18px;
+  }
+
+  a {
+    color: var(--text-h);
+    font-size: 16px;
+    border-radius: 6px;
+    background: var(--social-bg);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+
+    &:hover {
+      box-shadow: var(--shadow);
+    }
+    .button-icon {
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    li {
+      flex: 1 1 calc(50% - 8px);
+    }
+
+    a {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  }
+}
+
+#spacer {
+  height: 88px;
+  border-top: 1px solid var(--border);
+  @media (max-width: 1024px) {
+    height: 48px;
+  }
+}
+
+.ticks {
+  position: relative;
+  width: 100%;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4.5px;
+    border: 5px solid transparent;
+  }
+
+  &::before {
+    left: 0;
+    border-left-color: var(--border);
+  }
+  &::after {
+    right: 0;
+    border-right-color: var(--border);
+  }
+}
+
+/* === GODS EYE LAYOUT FIX (AUTO) === */
+
+.dashboard {
+  display: grid !important;
+  grid-template-columns: 1fr 350px !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  overflow: hidden !important;
+}
+
+.map-container {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1 !important;
+}
+
+.right-panel {
+  background: #0b1220 !important;
+  color: #fff !important;
+  overflow-y: auto !important;
+  padding: 10px !important;
+  border-left: 1px solid #1f2a44 !important;
+}
+
+.panel-card {
+  background: #111a2e !important;
+  margin-bottom: 10px !important;
+  padding: 10px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+}
+
+/* scrollbar */
+.right-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.right-panel::-webkit-scrollbar-thumb {
+  background: #2a3b5f;
+  border-radius: 3px;
+}
+
+
+/* === GODS EYE POLISH STAGE 2 === */
+
+/* Slimmer intelligence panel */
+div[style*="width: 320px"],
+div[style*="width:320px"] {
+  width: 280px !important;
+  max-width: 280px !important;
+}
+
+/* Compact right panel text/cards */
+h2, h3 {
+  font-size: 18px !important;
+  margin: 8px 0 !important;
+}
+
+.right-panel,
+.panel-card {
+  font-size: 12px !important;
+}
+
+/* Compact Phase controls box */
+.leaflet-control-container + div,
+div[style*="Phase 11 Controls"] {
+  font-size: 12px !important;
+}
+
+/* Make map use maximum remaining screen */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Cleaner legend */
+.map-legend {
+  font-size: 11px !important;
+  padding: 8px !important;
+  max-width: 180px !important;
+}
+
+/* === GODS EYE POLISH STAGE 3: MAX MAP WIDTH === */
+
+html, body, #root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  background: #05070d !important;
+}
+
+/* Remove unwanted left spacing */
+body > div,
+#root > div {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Make main app hug the left edge */
+.app,
+.App,
+.main,
+.dashboard {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  width: 100vw !important;
+}
+
+/* Slim right intelligence panel further */
+div[style*="width: 280px"],
+div[style*="width:280px"],
+div[style*="width: 320px"],
+div[style*="width:320px"] {
+  width: 260px !important;
+  max-width: 260px !important;
+}
+
+/* Smaller right panel cards */
+div[style*="Intelligence Panel"] h2,
+div[style*="Top Threats"] h3,
+div[style*="Vessel Watchlist"] h3 {
+  font-size: 16px !important;
+}
+
+
+/* === SAFE SENTINEL CARD POLISH === */
+input[type="range"] {
+  max-width: 160px !important;
+}
+
+h3 {
+  font-size: 18px !important;
+}
+
+label {
+  font-size: 14px !important;
+}
+
+
+/* === TOP INTEL STATUS BANNER POLISH === */
+.leaflet-top.leaflet-right::after {
+  content: "GOD'S EYE ACTIVE • Fiji-Pacific Maritime Monitoring • AIS + Satellite Overlay";
+  position: fixed;
+  top: 118px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8, 13, 24, 0.92);
+  color: #e8f1ff;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 9999;
+  box-shadow: 0 0 14px rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.12);
+  letter-spacing: 0.5px;
+}
+
+/* === LEFT OPERATOR CONTROL POLISH === */
+select,
+button {
+  height: 32px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+}
+
+input[type="checkbox"] {
+  transform: scale(0.85);
+}
+
+div[style*="Phase 11 Controls"] {
+  max-width: 220px !important;
+  padding: 10px !important;
+}
+
+
+/* === HIGH RISK PANEL POLISH === */
+.high-risk-vessel,
+.vessel-card,
+.watchlist-card {
+  border: 1px solid #facc15 !important;
+  border-radius: 10px !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  padding: 10px !important;
+  margin: 8px !important;
+}
+
+.vessel-card strong,
+.watchlist-card strong {
+  color: #facc15 !important;
+}
+
+.risk-elevated,
+.risk-high {
+  color: #facc15 !important;
+  font-weight: 800 !important;
+}
+
+
+/* === COMPACT LIVE ALERT PANEL === */
+.alert-panel,
+div:has(> h4) {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.alert-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.alert-panel::-webkit-scrollbar-thumb {
+  background: #7f1d1d;
+  border-radius: 4px;
+}
+

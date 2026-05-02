@@ -5,9 +5,91 @@ import {
   CircleMarker,
   Popup,
   Polyline,
+  Rectangle,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+
+
+const coverageZones = [
+  { name: "Western Fiji / Lautoka / Nadi", bounds: [[-18.8, 176.6], [-16.9, 178.0]], color: "green" },
+  { name: "Central / Suva Watch Zone", bounds: [[-18.5, 177.3], [-17.4, 178.8]], color: "orange" },
+  { name: "Vanua Levu Watch Zone", bounds: [[-17.0, 178.0], [-15.5, 180.0]], color: "orange" },
+  { name: "Kadavu Southern Watch Zone", bounds: [[-19.6, 177.0], [-18.5, 179.4]], color: "orange" },
+];
+
+const portZones = [
+  { name: "Lautoka", bounds: [[-17.66, 177.40], [-17.56, 177.50]] },
+  { name: "Suva", bounds: [[-18.18, 178.38], [-18.04, 178.55]] },
+  { name: "Levuka", bounds: [[-17.73, 178.78], [-17.64, 178.88]] },
+  { name: "Labasa / Vanua Levu", bounds: [[-16.48, 179.25], [-16.28, 179.48]] },
+];
+
+function MapOverlays() {
+  return (
+    <>
+      {coverageZones.map((z) => (
+        <Rectangle
+          key={z.name}
+          bounds={z.bounds}
+          pathOptions={{ color: z.color, weight: 2, fillOpacity: 0.08 }}
+        />
+      ))}
+
+      {portZones.map((p) => (
+        <Rectangle
+          key={p.name}
+          bounds={p.bounds}
+          pathOptions={{ color: "red", weight: 2, dashArray: "6 6", fillOpacity: 0.03 }}
+        />
+      ))}
+    </>
+  );
+}
+
+function MapLegend() {
+  return (
+    <div style={{
+      position: "absolute",
+      bottom: 18,
+      left: 18,
+      zIndex: 1000,
+      background: "rgba(10,15,25,0.9)",
+      color: "white",
+      padding: "10px 12px",
+      borderRadius: "10px",
+      fontSize: "12px",
+      lineHeight: "1.6",
+      border: "1px solid #334155"
+    }}>
+      <div><b>Map Legend</b></div>
+      <div>🟢 Vessel / low risk</div>
+      <div>🟠 Medium risk / watch zone</div>
+      <div>🔴 Dashed box = port monitoring</div>
+      <div style={{ marginTop: 6, opacity: 0.8 }}>Source: AIS + Fiji-Pacific zones</div>
+    </div>
+  );
+}
+
+function LastUpdatedLabel() {
+  return (
+    <div style={{
+      position: "absolute",
+      top: 12,
+      right: 330,
+      zIndex: 1000,
+      background: "rgba(10,15,25,0.85)",
+      color: "white",
+      padding: "8px 10px",
+      borderRadius: "8px",
+      fontSize: "12px",
+      border: "1px solid #334155"
+    }}>
+      Last updated: {new Date().toLocaleTimeString()}
+    </div>
+  );
+}
+
 
 function FitToData({ vessels, alerts, shouldFit }) {
   const map = useMap();
@@ -51,7 +133,7 @@ function FollowSelected({ selected, selectedType, followMode }) {
 
     if (Number.isNaN(lat) || Number.isNaN(lon)) return;
 
-    map.panTo([lat, lon], { animate: true, duration: 0.8 });
+    map.setView([lat, lon], Math.max(map.getZoom(), 9), { animate: true });
   }, [selected, selectedType, followMode, map]);
 
   return null;
@@ -130,11 +212,14 @@ function MiniStat({ label, value }) {
 }
 
 export default function App() {
+  const [selectedVessel, setSelectedVessel] = useState(null);
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
 
   const [vessels, setVessels] = useState([]);
+  const [aisGaps, setAisGaps] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [routeIntel, setRouteIntel] = useState([]);
 
   const [route, setRoute] = useState([]);
   const [prediction, setPrediction] = useState([]);
@@ -151,7 +236,113 @@ export default function App() {
 
   const [showVessels, setShowVessels] = useState(true);
   const [showAlerts, setShowAlerts] = useState(true);
+const [showSentinel, setShowSentinel] = useState(true);
+const [opacity, setOpacity] = useState(0.6);
   const [highRiskOnly, setHighRiskOnly] = useState(false);
+
+
+  const generateReport = () => {
+    const elevatedVessels = vessels
+      .filter((v) => String(v.risk_level || "").toLowerCase() !== "low")
+      .slice(0, 20)
+      .map((v) => ({
+        id: v.id,
+        mmsi: v.mmsi || "unknown",
+        name: v.name || "unknown",
+        lat: v.lat,
+        lon: v.lon,
+        speed: v.speed,
+        course: v.course,
+        risk_level: v.risk_level || "unknown",
+        flags: v.anomaly_flags || v.flags || [],
+
+        
+        zone: (() => {
+          const lat = v.lat;
+          const lon = v.lon;
+
+          if (lat > -20 && lat < -15 && lon > 175 && lon < 180) return "Fiji EEZ";
+          if (lat > -23 && lat < -15 && lon > -175 && lon < -173) return "Tonga";
+          if (lat > -20 && lat < -10 && lon > 165 && lon < 170) return "Vanuatu";
+          if (lat > -15 && lat < -13 && lon > -173 && lon < -171) return "Samoa";
+          if (lat > -10 && lat < -5 && lon > 175 && lon < 180) return "Tuvalu";
+          if (lat > -12 && lat < -5 && lon > 155 && lon < 165) return "Solomon Islands";
+          if (lat > -10 && lat < 0 && lon > 140 && lon < 155) return "Papua New Guinea";
+          if (lat > -5 && lat < 5 && lon > 170 && lon < -150) return "Kiribati";
+          if (lat > -10 && lat < -7 && lon > -172 && lon < -170) return "Tokelau";
+          if (lat > 0 && lat < 10 && lon > 140 && lon < 160) return "Micronesia";
+          if (lat > -13 && lat < -12 && lon > 177 && lon < 179) return "Rotuma";
+
+          return "Open Ocean";
+        })(),
+
+        
+        recommendation:
+          (v.speed || 0) < 1
+            ? "Monitor closely. Vessel is moving very slowly or stationary inside a monitored zone."
+            : (v.speed || 0) < 2
+            ? "Investigate pattern. Low-speed movement may indicate drifting, waiting, or unusual behaviour."
+            : "Routine monitoring. No immediate action required based on speed behaviour."
+,
+
+        threat:
+          (v.speed || 0) < 1
+            ? "Port Loitering"
+            : (v.speed || 0) < 2
+            ? "Suspicious Drift"
+            : "Normal Transit"
+      }));
+
+    const activeAlerts = alerts.slice(0, 20).map((a) => {
+      let severity = "low";
+
+      // Basic intelligence scoring
+      if (a.type === "LOITERING") {
+        severity = "high";
+      } else if ((a.speed || 0) < 2) {
+        severity = "medium";
+      } else {
+        severity = "low";
+      }
+
+      return {
+        id: a.id,
+        name: a.name || "Alert",
+        severity,
+        message: a.message || ""
+      };
+    });
+
+    const analysis =
+      elevatedVessels.length > 0 || activeAlerts.length > 0
+        ? `${elevatedVessels.length} elevated vessel(s) and ${activeAlerts.length} active alert(s) require monitoring.`
+        : "No elevated maritime threats detected at the time of report generation.";
+
+    const report = {
+      system: "GODS EYE - Operational Maritime Intelligence Report v1",
+      region: "Fiji-Pacific EEZ",
+      timestamp: new Date().toISOString(),
+      summary: {
+        total_vessels: vessels.length,
+        total_alerts: alerts.length,
+        elevated_vessels: elevatedVessels.length,
+        satellite_enabled: showSentinel
+      },
+      analysis,
+      vessels: elevatedVessels,
+      alerts: activeAlerts
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gods_eye_operational_intel_report_v1.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
 
   useEffect(() => {
     const loadVessels = () => {
@@ -355,7 +546,7 @@ export default function App() {
     .slice(0, 5);
 
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100%", background: "#0b1020" }}>
+    <div style={{ display: "flex", height: "100vh", width: "100vw", width: "100%", background: "#0b1020" }}>
       <div style={{ flex: 3, position: "relative" }}>
         <div
           style={{
@@ -471,8 +662,18 @@ export default function App() {
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {showSentinel && (
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            opacity={0.95}
+          />
+        )}
 
-          <FitToData
+          <MapOverlays />
+        <MapLegend />
+        <LastUpdatedLabel />
+
+        <FitToData
             vessels={showVessels ? visibleVessels : []}
             alerts={showAlerts ? visibleAlerts : []}
             shouldFit={shouldFit}
@@ -492,7 +693,7 @@ export default function App() {
                 isOnLand(v.lat, v.lon) && Number(v.speed) > 1;
 
               return (
-                <CircleMarker
+                <CircleMarker eventHandlers={{ click: () => setSelectedVessel(v) }}
                   key={`vessel-${v.id}`}
                   center={[v.lat, v.lon]}
                   radius={10}
@@ -582,15 +783,31 @@ export default function App() {
               pathOptions={{ color: "cyan", weight: 3, dashArray: "6, 6" }}
             />
           )}
-        </MapContainer>
+        
+{aisGaps.map((g, i) => (
+  g.lat && g.lon && (
+    <CircleMarker
+      key={"gap-" + i}
+      center={[g.lat, g.lon]}
+      radius={12}
+      pathOptions={{ color: "#ff0000", fillColor: "#ff0000", fillOpacity: 0.65 }}
+    >
+      <Tooltip permanent direction="top" offset={[0, -10]} className="dark-vessel-label">
+        DARK AIS • {g.age_minutes} min
+      </Tooltip>
+    </CircleMarker>
+  )
+))}
+
+</MapContainer>
       </div>
 
       <div
         style={{
-          flex: 1,
+          flex: 1, width: "100%",
           background: "#0a0a0a",
           color: "#fff",
-          padding: "18px",
+          
           overflowY: "auto",
           borderLeft: "1px solid #222",
         }}
@@ -603,11 +820,183 @@ export default function App() {
         </div>
 
         <hr style={{ borderColor: "#222", margin: "16px 0" }} />
-        <h3 style={{ marginTop: 0 }}>🔥 Top Threats</h3>
+        <h3 style={{ marginTop: 0 }}>🔥 Top Threats
+
+<h4 style={{ color: "#ffaa00", marginTop: "12px" }}>🧭 Route Intelligence</h4>
+{routeIntel.length === 0 && (
+  <div style={{ fontSize: "12px", opacity: 0.7 }}>No route activity</div>
+)}
+{routeIntel.slice(0,5).map((r, i) => (
+  <div key={i} style={{
+    background: "#1a1a00",
+    border: "1px solid #ffaa00",
+    padding: "6px",
+    marginBottom: "4px",
+    borderRadius: "6px",
+    fontSize: "12px"
+  }}>
+    <b>{r.name}</b><br/>
+    Score: {r.score} ({r.severity})<br/>
+    {r.indicators?.[0]}
+  </div>
+))}
+</h3>
+
+<h4 style={{ color: "#ff4444", marginTop: "10px" }}>🚨 Active Alerts</h4>
+{alerts.length === 0 && (
+  <div style={{ fontSize: "12px", opacity: 0.7 }}>No alerts</div>
+)}
+{alerts.map((a, idx) => (
+  <div key={idx} style={{
+    background: "#2a0000",
+    padding: "6px",
+    marginBottom: "4px",
+    borderRadius: "6px",
+    fontSize: "12px"
+  }}>
+    <b>{a.type}</b><br/>
+    <div className={`threat-badge threat-${
+      (a.severity || (a.type === "LOITERING" ? "high" : "medium")).toLowerCase()
+    }`}>
+      {(a.severity || (a.type === "LOITERING" ? "high" : "medium")).toUpperCase()} RISK
+    </div>
+
+    
+
+    {a.msg}<br/>
+    {a.id}
+  </div>
+))}
+
+<div style={{marginTop:"16px",padding:"12px",background:"#111",borderRadius:"12px",border:"1px solid #222"}}>
+
+<h3>🛰️ 
+        {selectedVessel && (
+          <div className="selected-intel-card">
+            <h3>🎯 Selected Vessel</h3>
+            <p><b>Name:</b> {selectedVessel.name || selectedVessel.shipname || "Unknown"}</p>
+            <p><b>MMSI:</b> {selectedVessel.mmsi || selectedVessel.id || "Unknown"}</p>
+            <p><b>Speed:</b> {selectedVessel.speed || selectedVessel.sog || 0} kn</p>
+            <p><b>Heading:</b> {selectedVessel.heading || selectedVessel.cog || "Unknown"}</p>
+            <p><b>Risk:</b> {selectedVessel.risk || selectedVessel.risk_level || "LOW"}</p>
+            <p><b>Zone:</b> {selectedVessel.zone || selectedVessel.zone_name || "Unknown"}</p>
+          </div>
+        )}
+
+          Sentinel Satellite</h3>
+
+<label>
+
+<input type="checkbox" checked={showSentinel} onChange={()=>setShowSentinel(!showSentinel)} /> Enable Satellite
+
+</label>
+
+<div style={{marginTop:"10px"}}>
+
+Opacity: {opacity.toFixed(2)}
+
+<input type="range" min="0" max="1" step="0.05" value={opacity} onChange={(e)=>setOpacity(parseFloat(e.target.value))} />
+
+</div>
+
+</div>
 
         {topThreats.length === 0 && (
           <div style={{ opacity: 0.8 }}>No active threats detected.</div>
         )}
+
+        <hr style={{ borderColor: "#222", margin: "16px 0" }} />
+        <h3 style={{ marginTop: 0 }}>🟡 Vessel Watchlist</h3>
+
+<div style={{
+  background: "#111827",
+  border: "1px solid #facc15",
+  borderRadius: "10px",
+  padding: "10px",
+  marginBottom: "12px"
+}}>
+  <h4 style={{ margin: "0 0 8px 0", color: "#facc15" }}>
+    ⚠️ Ranked Elevated Vessels
+  </h4>
+
+  {vessels
+    .filter(v => String(v.risk_level || "").toLowerCase() !== "low")
+    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+    .slice(0, 5)
+    .map((v, idx) => (
+      <div key={v.id || v.mmsi || idx} style={{
+        fontSize: "12px",
+        padding: "6px",
+        borderBottom: "1px solid #374151"
+      }}>
+        <b>#{idx + 1}</b> {v.mmsi || v.id || "Unknown"}<br />
+        Risk: <b>{v.risk_level || "Unknown"}</b><br />
+        Confidence: {v.confidence || 0}%<br />
+        Flags: {(v.anomaly_flags || v.flags || []).join(", ") || "None"}
+      </div>
+    ))}
+
+  {vessels.filter(v => String(v.risk_level || "").toLowerCase() !== "low").length === 0 && (
+    <div style={{ fontSize: "12px", color: "#9ca3af" }}>
+      No elevated vessels currently detected.
+    </div>
+  )}
+</div>
+
+
+<button
+  style={{
+    marginTop: "10px",
+    width: "100%",
+    padding: "8px",
+    background: "#1f6feb",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer"
+  }}
+
+  onClick={() => {
+  window.location.href = "http://127.0.0.1:5000/api/report/pdf";
+}}>
+  📄 Generate Report
+</button>
+
+
+        {visibleVessels
+          .filter((v) => String(v.risk_level || "").toLowerCase() !== "low")
+          .slice(0, 10)
+          .map((v) => (
+            <div
+              key={v.id}
+              onClick={() => {
+                setSelected(v);
+                setSelectedType("vessel");
+              }}
+              style={{
+                marginBottom: "12px",
+                padding: "12px",
+                background: "#0f172a",
+                border: "1px solid #facc15",
+                borderRadius: "12px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontWeight: "bold", fontSize: "15px" }}>
+                {v.name || "Unknown"}
+              </div>
+              <div>MMSI: {v.mmsi || v.id || "N/A"}</div>
+              <div>Risk: <b style={{ color: "#facc15" }}>{v.risk_level || "Medium"}</b></div>
+              <div>Speed: {v.speed ?? "N/A"} kn</div>
+              <div>Heading: {v.heading ?? v.course ?? "N/A"}°</div>
+              <div>Confidence: {v.confidence ?? "N/A"}</div>
+              <div style={{ marginTop: "8px", fontSize: "13px", opacity: 0.9 }}>
+                <b>Reasons:</b><br />
+                {(v.anomaly_flags || v.risk_flags || v.behavior_flags || ["inside Fiji-Pacific watch zone"])
+                  .join(", ")}
+              </div>
+            </div>
+          ))}
 
         {topThreats.map((v) => (
           <div
