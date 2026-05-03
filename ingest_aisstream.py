@@ -1,0 +1,99 @@
+import asyncio
+import json
+import time
+import websockets
+from pathlib import Path
+
+AISSTREAM_API_KEY = "7ca09eeb84e85ab922ac5ed801b51bfd70e9ecb8"
+
+OUTFILE = Path("backend/ais_live.json")
+
+# Fiji-wide AIS coverage boxes
+FIJI_BOXES = [
+    [[-18.5, 176.0], [-17.0, 178.5]],   # Western Viti Levu / Lautoka / Nadi
+    [[-19.0, 177.0], [-17.5, 179.5]],   # Suva / Eastern Viti Levu
+    [[-17.5, 178.0], [-15.8, 180.0]],   # Vanua Levu
+    [[-20.0, 176.5], [-18.5, 179.5]],   # Kadavu / South Fiji
+    [[-20.5, -180.0], [-15.0, -176.0]], # Lau / Eastern Fiji dateline side
+    [[-21.5, 174.0], [-14.5, 180.0]],   # Wider Fiji west/central waters
+]
+
+vessels = {}
+
+def save_vessels():
+    OUTFILE.parent.mkdir(parents=True, exist_ok=True)
+    data = list(vessels.values())
+    OUTFILE.write_text(json.dumps(data, indent=2))
+    print(f"[AIS] Saved {len(data)} vessels to {OUTFILE}")
+
+async def connect_ais():
+    async with websockets.connect("wss://stream.aisstream.io/v0/stream") as websocket:
+        subscribe_message = {
+            "APIKey": AISSTREAM_API_KEY,
+            "BoundingBoxes": FIJI_BOXES,
+            "FilterMessageTypes": ["PositionReport"]
+        }
+
+        await websocket.send(json.dumps(subscribe_message))
+        print("[AIS] Connected to AISStream")
+        print("[AIS] Fiji-wide bounding boxes active")
+
+        async for message_json in websocket:
+            try:
+                message = json.loads(message_json)
+                msg = message.get("Message", {})
+                metadata = message.get("MetaData", {})
+
+                position = msg.get("PositionReport", {})
+                mmsi = str(position.get("UserID") or metadata.get("MMSI") or "")
+
+                if not mmsi:
+                    continue
+
+                lat = position.get("Latitude")
+                lon = position.get("Longitude")
+
+                if lat is None or lon is None:
+                    continue
+
+                vessels[mmsi] = {
+                    "mmsi": mmsi,
+                    "name": metadata.get("ShipName", "Unknown"),
+                    "lat": lat,
+                    "lon": lon,
+                    "speed": position.get("Sog", 0),
+                    "course": position.get("Cog", 0),
+                    "heading": position.get("TrueHeading"),
+                    "timestamp": time.time(),
+                    "source": "AISStream",
+                    "zone": detect_zone(lat, lon)
+                }
+
+                save_vessels()
+
+            except Exception as e:
+                print("[AIS ERROR]", e)
+
+def detect_zone(lat, lon):
+    if -18.5 <= lat <= -17.0 and 176.0 <= lon <= 178.5:
+        return "Western Viti Levu / Lautoka / Nadi"
+    if -19.0 <= lat <= -17.5 and 177.0 <= lon <= 179.5:
+        return "Suva / Eastern Viti Levu"
+    if -17.5 <= lat <= -15.8 and 178.0 <= lon <= 180.0:
+        return "Vanua Levu"
+    if -20.0 <= lat <= -18.5 and 176.5 <= lon <= 179.5:
+        return "Kadavu / Southern Fiji"
+    if -20.5 <= lat <= -15.0 and -180.0 <= lon <= -176.0:
+        return "Lau Group / Eastern Fiji"
+    return "Wider Fiji Waters"
+
+async def main():
+    while True:
+        try:
+            await connect_ais()
+        except Exception as e:
+            print("[AIS reconnecting]", e)
+            await asyncio.sleep(10)
+
+if __name__ == "__main__":
+    asyncio.run(main())

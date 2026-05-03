@@ -1,1 +1,122 @@
-{"id": "ais_563087100", "name": "Vessel 563087100", "lat": -17.943383333333333, "lon": 177.18184333333332, "speed": 10, "type": "AIS", "confidence": 60, "lastSeen": "2026-04-21T21:40:00.407490+00:00"}
+[
+  {
+    "mmsi": "563991000",
+    "name": "APIA CHIEF",
+    "lat": -17.91312,
+    "lon": 177.229105,
+    "speed": 13.5,
+    "course": 17,
+    "heading": 15,
+    "timestamp": 1777774088.1044755,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "520309000",
+    "name": "MV PANTHER",
+    "lat": -17.735196666666663,
+    "lon": 177.18611,
+    "speed": 22.8,
+    "course": 124,
+    "heading": 124,
+    "timestamp": 1777774103.2321928,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "538071191",
+    "name": "EXPLORA",
+    "lat": -17.772583333333333,
+    "lon": 177.38314,
+    "speed": 0,
+    "course": 186,
+    "heading": 1,
+    "timestamp": 1777773754.5906253,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "352006002",
+    "name": "CAPITAINE WALLIS",
+    "lat": -17.59707,
+    "lon": 177.41524666666666,
+    "speed": 0.3,
+    "course": 284,
+    "heading": 36,
+    "timestamp": 1777773782.1374717,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "235085287",
+    "name": "FIDELIS",
+    "lat": -17.77256,
+    "lon": 177.38378,
+    "speed": 0,
+    "course": 225,
+    "heading": 225,
+    "timestamp": 1777773962.0632782,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "311001081",
+    "name": "SEABOURN PURSUIT",
+    "lat": -17.602858333333334,
+    "lon": 177.439245,
+    "speed": 0,
+    "course": 104,
+    "heading": 18,
+    "timestamp": 1777774002.1206374,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "311746000",
+    "name": "NORWEGIAN SPIRIT",
+    "lat": -17.603178333333336,
+    "lon": 177.43836166666668,
+    "speed": 0,
+    "course": 77,
+    "heading": 18,
+    "timestamp": 1777773825.9986675,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "319245300",
+    "name": "ARROW",
+    "lat": -17.64604166666667,
+    "lon": 177.32996,
+    "speed": 12,
+    "course": 149,
+    "heading": 146,
+    "timestamp": 1777774098.4300892,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "319080000",
+    "name": "HAIDA 1929",
+    "lat": -17.772499999999997,
+    "lon": 177.38421166666666,
+    "speed": 0,
+    "course": 271,
+    "heading": 359,
+    "timestamp": 1777773980.9418814,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  },
+  {
+    "mmsi": "253000026",
+    "name": "ANTHAS",
+    "lat": -17.722289999999997,
+    "lon": 177.37288666666666,
+    "speed": 0,
+    "course": 29,
+    "heading": 321,
+    "timestamp": 1777774021.9884408,
+    "source": "AISStream",
+    "zone": "Western Viti Levu / Lautoka / Nadi"
+  }
+]

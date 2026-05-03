@@ -1,19 +1,3 @@
-
-# --- Global vessel memory ---
-VESSEL_STATE = {}
-
-
-ZONES = ZONES if 'ZONES' in globals() else []
-
-# --- TEST FIJI ZONE ---
-ZONES.append({
-    "name": "Fiji Test Zone",
-    "type": "watch",
-    "country": "Fiji",
-    "bbox": [176.5, -18.5, 178.5, -16.5],
-    "color": "orange"
-})
-
 import time
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from flask import Flask, jsonify, jsonify, request
@@ -98,72 +82,16 @@ def safe_generate_alerts(vessels):
             alerts.append({"type": "SPOOFING", "msg": "Possible GPS spoofing", "id": v.get("id")})
 
         if speed == 0:
-            alerts.append({
-            "type": "LOITERING",
-            "severity": "HIGH" if v.get("risk",0) >= 20 else "MEDIUM",
-            f"msg": f"Stationary vessel | Risk: {v.get('risk')} | Zone: {v.get('zone_name')} | Flags: {', '.join(v.get('risk_flags', []))}",
-            "id": v.get("id")
-        })
+            alerts.append({"type": "LOITERING", "msg": "Stationary vessel", "id": v.get("id")})
 
     return alerts
 
-
-# --- Zone helper ---
-def is_in_bbox(vessel, bbox):
-    lon = vessel.get("lon") or vessel.get("lng") or vessel.get("longitude")
-    lat = vessel.get("lat") or vessel.get("latitude")
-
-    if lon is None or lat is None:
-        return False
-
-    lon = float(lon)
-    lat = float(lat)
-
-    min_lon, min_lat, max_lon, max_lat = bbox
-
-    if min_lon <= max_lon:
-        return min_lon <= lon <= max_lon and min_lat <= lat <= max_lat
-
-    return (lon >= min_lon or lon <= max_lon) and min_lat <= lat <= max_lat
-
-
-def detect_zone(vessel, zones):
-    for zone in zones:
-        bbox = zone.get("bbox")
-        if bbox and is_in_bbox(vessel, bbox):
-            return zone
-    return None
-
-
 @app.route("/api/alerts")
 def alerts():
+    alerts_data = []
     scored_vessels = get_scored_vessels()
-    alerts = []
-
-    for v in scored_vessels:
-        risk = v.get("risk", 0) or 0
-        flags = v.get("risk_flags", []) or []
-        zone = v.get("zone_name")
-        loiter_time = v.get("loiter_time", 0) or 0
-
-        if loiter_time > 5 and risk >= 15:
-            alerts.append({
-                "id": v.get("id"),
-                "type": "LOITERING",
-                "severity": "HIGH" if risk >= 20 else "MEDIUM",
-                "msg": f"Loitering detected | Risk: {risk} | Loiter time: {loiter_time} | Zone: {zone} | Flags: {', '.join(flags)}"
-            })
-
-        if any("route" in str(f).lower() for f in flags):
-            alerts.append({
-                "id": v.get("id"),
-                "type": "ROUTE",
-                "severity": "HIGH",
-                "msg": f"Suspicious route | Risk: {risk} | Flags: {', '.join(flags)}"
-            })
-
-    return jsonify(alerts)
-
+    enriched_alerts = correlate_alerts_vessels(alerts_data, scored_vessels, radius_km=80)
+    return jsonify(safe_generate_alerts(get_scored_vessels()))
 
 @app.route("/api/vessels", methods=["GET", "POST"])
 def handle_vessels():
@@ -174,82 +102,7 @@ def handle_vessels():
         upsert_vessel(data)
         return {"status": "added"}
 
-    vessels = get_scored_vessels()
-
-    # --- Zone Detection for /api/vessels ---
-    for vessel in vessels:
-        zone = detect_zone(vessel, ZONES) if 'ZONES' in globals() else None
-
-        if zone:
-            vessel["zone_name"] = zone.get("name")
-            vessel["zone_type"] = zone.get("type")
-            vessel["zone_country"] = zone.get("country")
-        else:
-            vessel["zone_name"] = None
-            vessel["zone_type"] = None
-            vessel["zone_country"] = None
-
-        # --- Zone Risk Scoring ---
-
-        # --- Loitering Detection ---
-
-        # --- Cross-Zone Tracking ---
-        vid = vessel.get("mmsi") or vessel.get("id")
-        state = VESSEL_STATE.setdefault(vid, {"zones": []})
-
-        current_zone = vessel.get("zone_name")
-
-        if current_zone:
-            if not state["zones"] or state["zones"][-1] != current_zone:
-                state["zones"].append(current_zone)
-
-        vessel["zone_history"] = state["zones"][-5:]
-
-        # Detect suspicious route pattern
-        history = vessel["zone_history"]
-
-        if "Tonga Watch Zone" in history and "Samoa Watch Zone" in history:
-            vessel["risk"] = vessel.get("risk", 0) + 15
-            vessel.setdefault("risk_flags", []).append("Tonga → Samoa route")
-
-        if "Samoa Watch Zone" in history and "Fiji Test Zone" in history:
-            vessel["risk"] = vessel.get("risk", 0) + 15
-            vessel.setdefault("risk_flags", []).append("Samoa → Fiji route")
-
-        speed = vessel.get("speed", 0) or 0
-        vid = vessel.get("mmsi") or vessel.get("id")
-
-        state = VESSEL_STATE.setdefault(vid, {"loiter": 0})
-
-        if speed < 2:
-            state["loiter"] = state.get("loiter", 0) + 1
-        else:
-            state["loiter"] = 0
-
-        vessel["loiter_time"] = state["loiter"]
-
-        if vessel["loiter_time"] > 5:
-            vessel["risk"] = vessel.get("risk", 0) + 10
-            if "Loitering Detected" not in vessel.get("risk_flags", []):
-                vessel.setdefault("risk_flags", []).append("Loitering Detected")
-
-
-        if vessel.get("loiter_time", 0) > 5:
-            vessel["risk"] = vessel.get("risk", 0) + 10
-            if "Loitering Detected" not in vessel.get("risk_flags", []):
-                vessel.setdefault("risk_flags", []).append("Loitering Detected")
-
-        if zone:
-            if zone.get("type") == "watch":
-                vessel["risk"] = vessel.get("risk", 0) + 5
-                vessel.setdefault("risk_flags", []).append("Entered Watch Zone")
-
-            if zone.get("type") == "port":
-                vessel["risk"] = vessel.get("risk", 0) + 2
-                vessel.setdefault("risk_flags", []).append("In Port Zone")
-
-
-    return jsonify(vessels)
+    return jsonify(get_scored_vessels())
 
 @app.route("/api/vessels/<path:vessel_id>/history")
 def vessel_history(vessel_id):
@@ -711,22 +564,11 @@ def generate_report():
         if status == "Aging track":
             reasons.append("Delayed AIS updates — possible signal degradation")
 
-        zone = v.get("zone", "Unknown area")
-
-        if status == "DARK / AIS LOST":
-            reasons.append(f"AIS signal lost near {zone} — potential dark activity")
-
-        elif speed < 0.3 and age_hours > 1:
-            reasons.append(f"Prolonged low-speed movement near {zone} — possible loitering")
+        if speed < 0.3 and age_hours > 0.5:
+            reasons.append("Low speed detected over time — possible loitering")
 
         elif speed < 0.3:
-            reasons.append(f"Stationary vessel detected near {zone}")
-
-        elif age_hours > 0.5:
-            reasons.append(f"Recent AIS delay near {zone} — monitoring required")
-
-        else:
-            reasons.append(f"Normal transit activity through {zone}")
+            reasons.append("Low speed detected — vessel stationary")
 
         if v.get("name", "Unknown") == "Unknown":
             reasons.append("Unidentified vessel — no name data available")
@@ -836,190 +678,7 @@ def generate_report():
 
 
 
-
-
-@app.route("/api/send-alerts")
-def send_alerts():
-    import json, time, os, smtplib
-    from email.mime.text import MIMEText
-    from flask import jsonify
-
-    ais_path = os.path.join(os.path.dirname(__file__), "ais_live.json")
-
-    if not os.path.exists(ais_path):
-        return jsonify({"status": "no_data", "sent": 0})
-
-    with open(ais_path, "r") as f:
-        vessels = json.load(f)
-
-    now = time.time()
-    alerts = []
-
-    for v in vessels:
-        age_hours = round((now - float(v.get("timestamp", now))) / 3600, 2)
-        speed = float(v.get("speed") or 0)
-        zone = v.get("zone", "Unknown area")
-
-        reasons = []
-
-        if age_hours > 6:
-            reasons.append("AIS signal lost / possible dark activity")
-
-        if speed < 0.3:
-            reasons.append(f"Stationary or loitering behaviour near {zone}")
-
-        # Only alert on meaningful conditions
-        if (
-            age_hours > 2 or
-            (speed < 0.3 and age_hours > 1) or
-            "dark" in " ".join(reasons).lower()
-        ):
-            alerts.append({
-                "name": v.get("name", "Unknown"),
-                "mmsi": v.get("mmsi"),
-                "zone": zone,
-                "speed": speed,
-                "age_hours": age_hours,
-                "reasons": reasons
-            })
-
-    if not alerts:
-        return jsonify({
-            "status": "no_alerts",
-            "message": "No alert-worthy vessels detected",
-            "sent": 0
-        })
-
-    subject = "Gods Eye Maritime Alert"
-    body = "Gods Eye Maritime Alert\n\n"
-
-    for a in alerts[:5]:
-        body += f"Vessel: {a['name']}\n"
-        body += f"MMSI: {a['mmsi']}\n"
-        body += f"Zone: {a['zone']}\n"
-        body += f"Speed: {a['speed']} kn\n"
-        body += f"Track age: {a['age_hours']} hours\n"
-        body += f"Reason: {'; '.join(a['reasons'])}\n"
-        body += "---\n"
-
-    # Dry run by default unless email settings are provided
-    smtp_user = os.getenv("ALERT_EMAIL_USER")
-    smtp_pass = os.getenv("ALERT_EMAIL_PASS")
-    alert_to = os.getenv("ALERT_EMAIL_TO")
-
-    if not smtp_user or not smtp_pass or not alert_to:
-        return jsonify({
-            "status": "dry_run",
-            "message": "Alert generated but not sent. Set ALERT_EMAIL_USER, ALERT_EMAIL_PASS and ALERT_EMAIL_TO to enable email.",
-            "alerts": alerts[:5],
-            "sent": 0
-        })
-
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = smtp_user
-    msg["To"] = alert_to
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(smtp_user, smtp_pass)
-        server.sendmail(smtp_user, [alert_to], msg.as_string())
-
-    return jsonify({
-        "status": "sent",
-        "sent": 1,
-        "alerts": alerts[:5]
-    })
-
-
-
-
-@app.route("/api/zones")
-def get_zones():
-    import json, os
-    from flask import jsonify
-
-    zones_path = os.path.join(os.path.dirname(__file__), "config", "zones.json")
-
-    if not os.path.exists(zones_path):
-        return jsonify([])
-
-    with open(zones_path, "r") as f:
-        zones = json.load(f)
-
-    return jsonify(zones)
-
-
-
-@app.route("/api/test-cross-zone")
-def test_cross_zone():
-    test_vessel = {
-        "id": "TEST-ROUTE-001",
-        "mmsi": "999000111",
-        "name": "TEST ROUTE VESSEL",
-        "lat": -17.60,
-        "lon": 177.44,
-        "speed": 1,
-        "risk": 0,
-        "risk_flags": [],
-        "zone_name": "Fiji Test Zone"
-    }
-
-    state = VESSEL_STATE.setdefault("999000111", {"loiter": 0, "zones": []})
-    state.setdefault("zones", [])
-
-    for z in ["Tonga Watch Zone", "Samoa Watch Zone", "Fiji Test Zone"]:
-        if not state["zones"] or state["zones"][-1] != z:
-            state["zones"].append(z)
-
-    test_vessel["zone_history"] = state["zones"][-5:]
-
-    if "Tonga Watch Zone" in test_vessel["zone_history"] and "Samoa Watch Zone" in test_vessel["zone_history"]:
-        test_vessel["risk"] += 15
-        test_vessel["risk_flags"].append("Tonga → Samoa route")
-
-    if "Samoa Watch Zone" in test_vessel["zone_history"] and "Fiji Test Zone" in test_vessel["zone_history"]:
-        test_vessel["risk"] += 15
-        test_vessel["risk_flags"].append("Samoa → Fiji route")
-
-    return jsonify(test_vessel)
-
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
 
 
-
-
-# --- Zone detection helper ---
-def is_in_bbox(vessel, bbox):
-    """
-    bbox format: [minLon, minLat, maxLon, maxLat]
-    vessel needs lon/lng and lat.
-    """
-    lon = vessel.get("lon") or vessel.get("lng") or vessel.get("longitude")
-    lat = vessel.get("lat") or vessel.get("latitude")
-
-    if lon is None or lat is None:
-        return False
-
-    lon = float(lon)
-    lat = float(lat)
-
-    min_lon, min_lat, max_lon, max_lat = bbox
-
-    # Normal bbox
-    if min_lon <= max_lon:
-        return min_lon <= lon <= max_lon and min_lat <= lat <= max_lat
-
-    # Dateline-crossing bbox
-    return (lon >= min_lon or lon <= max_lon) and min_lat <= lat <= max_lat
-
-
-def detect_zone(vessel, zones):
-    """
-    Returns the zone the vessel is currently inside, or None.
-    """
-    for zone in zones:
-        bbox = zone.get("bbox")
-        if bbox and is_in_bbox(vessel, bbox):
-            return zone
-    return None

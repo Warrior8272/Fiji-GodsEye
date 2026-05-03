@@ -95,12 +95,6 @@ function FitToData({ vessels, alerts, shouldFit }) {
   const map = useMap();
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     if (!shouldFit) return;
 
     const vesselPoints = (vessels || [])
@@ -130,12 +124,6 @@ function FollowSelected({ selected, selectedType, followMode }) {
   const map = useMap();
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     if (!followMode) return;
     if (!selected) return;
     if (selectedType !== "vessel") return;
@@ -155,12 +143,6 @@ function LocateSelectedVessel() {
   const map = useMap();
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     const handler = (event) => {
       const lat = Number(event.detail?.lat);
       const lon = Number(event.detail?.lon);
@@ -235,7 +217,6 @@ export default function App() {
   const [selectedType, setSelectedType] = useState(null);
 
   const [vessels, setVessels] = useState([]);
-const [intelSummary, setIntelSummary] = useState(null);
   const [aisGaps, setAisGaps] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [routeIntel, setRouteIntel] = useState([]);
@@ -364,12 +345,6 @@ const [opacity, setOpacity] = useState(0.6);
 
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     const loadVessels = () => {
       fetch("http://127.0.0.1:5000/api/vessels")
         .then((res) => {
@@ -402,12 +377,6 @@ const [opacity, setOpacity] = useState(0.6);
   }, [selected, selectedType]);
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     const loadAlerts = () => {
       fetch("http://127.0.0.1:5000/api/alerts")
         .then((res) => {
@@ -432,12 +401,6 @@ const [opacity, setOpacity] = useState(0.6);
   }, []);
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     const timer = setTimeout(() => setShouldFit(false), 1500);
     return () => clearTimeout(timer);
   }, []);
@@ -506,24 +469,12 @@ const [opacity, setOpacity] = useState(0.6);
   };
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     if (selected && selectedType === "vessel") {
       fetchRoute(selected.id, selected, historyRange);
     }
   }, [historyRange]);
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     if (followMode && selected && selectedType === "vessel") {
       fetchRoute(selected.id, selected, historyRange);
     }
@@ -849,28 +800,6 @@ const [opacity, setOpacity] = useState(0.6);
     </CircleMarker>
   )
 ))}
-
-
-{intelSummary && (
-  <div style={{
-    position: "absolute",
-    top: "80px",
-    right: "20px",
-    background: "rgba(0,0,0,0.8)",
-    padding: "10px",
-    borderRadius: "8px",
-    color: "white",
-    width: "220px",
-    zIndex: 1000
-  }}>
-    <h4>🧠 Intel Summary</h4>
-    <div>Total: {intelSummary.total_vessels}</div>
-    <div>High Risk: {intelSummary.high_risk}</div>
-    <div>Medium: {intelSummary.medium_risk}</div>
-    <div>Low: {intelSummary.low_risk}</div>
-    <div>Stale: {intelSummary.stale_tracks}</div>
-  </div>
-)}
 
 </MapContainer>
       </div>
