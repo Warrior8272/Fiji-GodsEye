@@ -1,5 +1,21 @@
 
 # --- Global vessel memory ---
+import io
+from flask import send_file
+from datetime import datetime
+from reportlab.lib.styles import getSampleStyleSheet
+from services.alert_correlation import correlate_alerts_vessels
+from services.intelligence import score_vessels
+from services.correlation import correlate_vessels_alerts
+from services.db import init_db, list_alerts, list_vessels, get_vessel_history, upsert_vessel
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle
+from flask_cors import CORS
+from flask import Flask, jsonify, jsonify, request
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+import time
+from ais_gap import detect_gaps
+from threat_fusion import apply_threat_scores
 VESSEL_STATE = {}
 
 
@@ -14,17 +30,6 @@ ZONES.append({
     "color": "orange"
 })
 
-import time
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from flask import Flask, jsonify, jsonify, request
-from flask_cors import CORS
-from reportlab.platypus import Table, TableStyle
-from reportlab.lib import colors
-
-from services.db import init_db, list_alerts, list_vessels, get_vessel_history, upsert_vessel
-from services.correlation import correlate_vessels_alerts
-from services.intelligence import score_vessels
-from services.alert_correlation import correlate_alerts_vessels
 
 app = Flask(__name__)
 CORS(app)
@@ -32,10 +37,12 @@ CORS(app)
 init_db()
 live_vessels = []
 
+
 def get_scored_vessels():
     vessels_data = list_vessels(100)
     alerts_data = []
-    correlated = correlate_vessels_alerts(vessels_data, alerts_data, radius_km=80)
+    correlated = correlate_vessels_alerts(
+        vessels_data, alerts_data, radius_km=80)
     scored = score_vessels(correlated)
     return scored
 
@@ -80,7 +87,6 @@ def generate_alerts(vessels):
     return alerts
 
 
-
 def safe_generate_alerts(vessels):
     alerts = []
 
@@ -90,20 +96,33 @@ def safe_generate_alerts(vessels):
         speed = v.get("speed", 0)
 
         if confidence >= 85:
-            alerts.append({"type": "HIGH", "msg": "High confidence vessel", "id": v.get("id")})
+            alerts.append({"type": "HIGH",
+                           "msg": "High confidence vessel",
+                           "id": v.get("id")})
         elif confidence >= 70:
-            alerts.append({"type": "ELEVATED", "msg": "Elevated vessel", "id": v.get("id")})
+            alerts.append(
+                {"type": "ELEVATED", "msg": "Elevated vessel", "id": v.get("id")})
 
         if "land_movement" in flags:
-            alerts.append({"type": "SPOOFING", "msg": "Possible GPS spoofing", "id": v.get("id")})
+            alerts.append({"type": "SPOOFING",
+                           "msg": "Possible GPS spoofing",
+                           "id": v.get("id")})
 
         if speed == 0:
-            alerts.append({
-            "type": "LOITERING",
-            "severity": "HIGH" if v.get("risk",0) >= 20 else "MEDIUM",
-            f"msg": f"Stationary vessel | Risk: {v.get('risk')} | Zone: {v.get('zone_name')} | Flags: {', '.join(v.get('risk_flags', []))}",
-            "id": v.get("id")
-        })
+            alerts.append(
+                {
+                    "type": "LOITERING",
+                    "severity": "HIGH" if v.get(
+                        "risk",
+                        0) >= 20 else "MEDIUM",
+                    f"msg": f"Stationary vessel | Risk: {
+                        v.get('risk')} | Zone: {
+                        v.get('zone_name')} | Flags: {
+                        ', '.join(
+                            v.get(
+                                'risk_flags',
+                                []))}",
+                    "id": v.get("id")})
 
     return alerts
 
@@ -137,30 +156,32 @@ def detect_zone(vessel, zones):
 
 @app.route("/api/alerts")
 def alerts():
-    scored_vessels = get_scored_vessels()
-    alerts = []
+    vessels = apply_threat_scores(list_vessels())
+    alerts = generate_alerts(vessels)
+    gap_alerts = detect_gaps(vessels)
+    alerts.extend(gap_alerts)
+    return jsonify(alerts)
 
-    for v in scored_vessels:
-        risk = v.get("risk", 0) or 0
-        flags = v.get("risk_flags", []) or []
-        zone = v.get("zone_name")
-        loiter_time = v.get("loiter_time", 0) or 0
+    for v in vessels:
+        risk = v.get("risk", 0)
+        flags = v.get("risk_flags", [])
+        zone = v.get("zone_name", "Unknown")
+        loiter_time = v.get("loiter_time", 0)
 
-        if loiter_time > 5 and risk >= 15:
-            alerts.append({
-                "id": v.get("id"),
-                "type": "LOITERING",
-                "severity": "HIGH" if risk >= 20 else "MEDIUM",
-                "msg": f"Loitering detected | Risk: {risk} | Loiter time: {loiter_time} | Zone: {zone} | Flags: {', '.join(flags)}"
-            })
+    alerts.append({
+        "id": v.get("id", v.get("mmsi")),
+        "type": "TEST_ALERT",
+        "severity": "LOW",
+        "msg": f"Test alert | MMSI: {v.get('mmsi')} | Zone: {zone}"
+    })
 
-        if any("route" in str(f).lower() for f in flags):
-            alerts.append({
-                "id": v.get("id"),
-                "type": "ROUTE",
-                "severity": "HIGH",
-                "msg": f"Suspicious route | Risk: {risk} | Flags: {', '.join(flags)}"
-            })
+    if any("route" in str(f).lower() for f in flags):
+        alerts.append({
+            "id": v.get("id"),
+            "type": "ROUTE",
+            "severity": "HIGH",
+            "msg": f"Suspicious route | Risk: {risk} | Flags: {', '.join(flags)}"
+        })
 
     return jsonify(alerts)
 
@@ -231,25 +252,28 @@ def handle_vessels():
         if vessel["loiter_time"] > 5:
             vessel["risk"] = vessel.get("risk", 0) + 10
             if "Loitering Detected" not in vessel.get("risk_flags", []):
-                vessel.setdefault("risk_flags", []).append("Loitering Detected")
-
+                vessel.setdefault(
+                    "risk_flags", []).append("Loitering Detected")
 
         if vessel.get("loiter_time", 0) > 5:
             vessel["risk"] = vessel.get("risk", 0) + 10
             if "Loitering Detected" not in vessel.get("risk_flags", []):
-                vessel.setdefault("risk_flags", []).append("Loitering Detected")
+                vessel.setdefault(
+                    "risk_flags", []).append("Loitering Detected")
 
         if zone:
             if zone.get("type") == "watch":
                 vessel["risk"] = vessel.get("risk", 0) + 5
-                vessel.setdefault("risk_flags", []).append("Entered Watch Zone")
+                vessel.setdefault(
+                    "risk_flags", []).append("Entered Watch Zone")
 
             if zone.get("type") == "port":
                 vessel["risk"] = vessel.get("risk", 0) + 2
                 vessel.setdefault("risk_flags", []).append("In Port Zone")
 
-
+    vessels = apply_threat_scores(vessels)
     return jsonify(vessels)
+
 
 @app.route("/api/vessels/<path:vessel_id>/history")
 def vessel_history(vessel_id):
@@ -267,20 +291,13 @@ def vessel_history(vessel_id):
     return jsonify(get_vessel_history(vessel_id, limit, range_hours))
 
 
-
 # ===== PDF REPORT ROUTE =====
-
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from datetime import datetime
-from flask import send_file
-import io
 
 
 @app.route("/api/ais-gaps")
 def api_ais_gaps():
-    import json, time
+    import json
+    import time
     from pathlib import Path
 
     ais_file = Path(__file__).with_name("ais_live.json")
@@ -325,7 +342,8 @@ def api_ais_gaps():
             last_seen_epoch = float(ts)
         elif isinstance(ts, str):
             try:
-                last_seen_epoch = datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+                last_seen_epoch = datetime.fromisoformat(
+                    ts.replace("Z", "+00:00")).timestamp()
             except Exception:
                 last_seen_epoch = now
 
@@ -335,20 +353,22 @@ def api_ais_gaps():
         age_seconds = now - last_seen_epoch
 
         if age_seconds >= gap_threshold_seconds:
-            gaps.append({
-                "type": "AIS_GAP",
-                "severity": (
-                    "high" if age_seconds >= 1800
-                    else "medium" if age_seconds >= 600
-                    else "low"
-                ),
-                "mmsi": mmsi,
-                "name": v.get("name") or v.get("shipname") or v.get("ShipName") or "Unknown vessel",
-                "age_minutes": round(age_seconds / 60, 1),
-                "message": f"AIS signal gap detected for {mmsi}: last update {round(age_seconds / 60, 1)} minutes ago",
-                "lat": v.get("lat"),
-                "lon": v.get("lon")
-            })
+            gaps.append(
+                {
+                    "type": "AIS_GAP",
+                    "severity": (
+                        "high" if age_seconds >= 1800 else "medium" if age_seconds >= 600 else "low"),
+                    "mmsi": mmsi,
+                    "name": v.get("name") or v.get("shipname") or v.get("ShipName") or "Unknown vessel",
+                    "age_minutes": round(
+                        age_seconds / 60,
+                        1),
+                    "message": f"AIS signal gap detected for {mmsi}: last update {
+                        round(
+                            age_seconds / 60,
+                            1)} minutes ago",
+                    "lat": v.get("lat"),
+                    "lon": v.get("lon")})
 
     return jsonify({
         "status": "ok",
@@ -356,11 +376,6 @@ def api_ais_gaps():
         "total_gaps": len(gaps),
         "gaps": gaps
     })
-
-
-
-
-
 
 
 # ===== ROUTE INTELLIGENCE =====
@@ -444,13 +459,11 @@ def api_route_intelligence():
     })
 
 
-
-
-
 # ===== FUSION THREAT SCORING =====
 @app.route("/api/fusion-score")
 def api_fusion_score():
-    import json, time
+    import json
+    import time
     from pathlib import Path
 
     ais_file = Path(__file__).with_name("ais_live.json")
@@ -489,7 +502,8 @@ def api_fusion_score():
         name = v.get("name") or v.get("shipname") or "Unknown vessel"
         mmsi = v.get("mmsi") or v.get("id") or "unknown"
         speed = float(v.get("speed") or v.get("sog") or 0)
-        course = float(v.get("course") or v.get("heading") or v.get("cog") or 0)
+        course = float(v.get("course") or v.get(
+            "heading") or v.get("cog") or 0)
 
         score = 0
         signals = []
@@ -562,11 +576,11 @@ def api_fusion_score():
     })
 
 
-
-
 @app.route("/api/intel-summary")
 def intel_summary():
-    import json, time, os
+    import json
+    import time
+    import os
     from flask import jsonify
 
     ais_path = os.path.join(os.path.dirname(__file__), "ais_live.json")
@@ -665,15 +679,11 @@ def intel_summary():
     return jsonify(summary)
 
 
-
-
-
-
-
-
 @app.route("/api/report")
 def generate_report():
-    import json, time, os
+    import json
+    import time
+    import os
     from flask import send_file
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet
@@ -714,16 +724,19 @@ def generate_report():
         zone = v.get("zone", "Unknown area")
 
         if status == "DARK / AIS LOST":
-            reasons.append(f"AIS signal lost near {zone} — potential dark activity")
+            reasons.append(
+                f"AIS signal lost near {zone} — potential dark activity")
 
         elif speed < 0.3 and age_hours > 1:
-            reasons.append(f"Prolonged low-speed movement near {zone} — possible loitering")
+            reasons.append(
+                f"Prolonged low-speed movement near {zone} — possible loitering")
 
         elif speed < 0.3:
             reasons.append(f"Stationary vessel detected near {zone}")
 
         elif age_hours > 0.5:
-            reasons.append(f"Recent AIS delay near {zone} — monitoring required")
+            reasons.append(
+                f"Recent AIS delay near {zone} — monitoring required")
 
         else:
             reasons.append(f"Normal transit activity through {zone}")
@@ -769,11 +782,17 @@ def generate_report():
     styles = getSampleStyleSheet()
     content = []
 
-    content.append(Paragraph("Gods Eye Maritime Intelligence Report", styles["Title"]))
+    content.append(
+        Paragraph(
+            "Gods Eye Maritime Intelligence Report",
+            styles["Title"]))
     content.append(Spacer(1, 10))
     content.append(Paragraph(f"Generated: {time.ctime()}", styles["Normal"]))
     content.append(Spacer(1, 10))
-    content.append(Paragraph(f"Threat Level: {threat_level}", styles["Heading2"]))
+    content.append(
+        Paragraph(
+            f"Threat Level: {threat_level}",
+            styles["Heading2"]))
     content.append(Spacer(1, 10))
 
     content.append(Paragraph("Executive Summary", styles["Heading2"]))
@@ -794,35 +813,54 @@ def generate_report():
     content.append(Spacer(1, 12))
 
     # Priority Targets Section
-    priority = [v for v in enriched if v["status"] != "Fresh track" or v["age"] > 1.5 or v["speed"] < 0.3]
+    priority = [v for v in enriched if v["status"] !=
+                "Fresh track" or v["age"] > 1.5 or v["speed"] < 0.3]
 
     content.append(Paragraph("Priority Targets", styles["Heading2"]))
 
     if priority:
         for v in priority[:5]:
-            content.append(Paragraph(
-                f"{v['name']} | MMSI: {v['mmsi']} | Status: {v['status']} | "
-                f"Speed: {v['speed']} kn | Course: {v['course']} | Age: {v['age']}h | "
-                f"Reason: {v.get('reason', 'Routine monitoring')}",
-                styles["Normal"]
-            ))
+            content.append(
+                Paragraph(
+                    f"{
+                        v['name']} | MMSI: {
+                        v['mmsi']} | Status: {
+                        v['status']} | " f"Speed: {
+                        v['speed']} kn | Course: {
+                            v['course']} | Age: {
+                                v['age']}h | " f"Reason: {
+                                    v.get(
+                                        'reason',
+                                        'Routine monitoring')}",
+                    styles["Normal"]))
             content.append(Spacer(1, 6))
     else:
-        content.append(Paragraph("No priority targets detected at this time.", styles["Normal"]))
+        content.append(
+            Paragraph(
+                "No priority targets detected at this time.",
+                styles["Normal"]))
 
     content.append(Spacer(1, 12))
 
     content.append(Paragraph("Top Maritime Activity", styles["Heading2"]))
     for v in enriched[:8]:
-        content.append(Paragraph(
-            f"{v['name']} | MMSI: {v['mmsi']} | Status: {v['status']} | "
-            f"Speed: {v['speed']} kn | Course: {v['course']} | Age: {v['age']}h",
-            styles["Normal"]
-        ))
+        content.append(
+            Paragraph(
+                f"{
+                    v['name']} | MMSI: {
+                    v['mmsi']} | Status: {
+                    v['status']} | " f"Speed: {
+                        v['speed']} kn | Course: {
+                            v['course']} | Age: {
+                                v['age']}h",
+                styles["Normal"]))
         content.append(Spacer(1, 6))
 
     content.append(Spacer(1, 12))
-    content.append(Paragraph("Operational Recommendations", styles["Heading2"]))
+    content.append(
+        Paragraph(
+            "Operational Recommendations",
+            styles["Heading2"]))
     content.append(Paragraph(
         "Monitor vessels exhibiting AIS loss behaviour.<br/>"
         "Investigate stationary vessels in high-risk zones.<br/>"
@@ -835,12 +873,12 @@ def generate_report():
     return send_file(report_path, as_attachment=True)
 
 
-
-
-
 @app.route("/api/send-alerts")
 def send_alerts():
-    import json, time, os, smtplib
+    import json
+    import time
+    import os
+    import smtplib
     from email.mime.text import MIMEText
     from flask import jsonify
 
@@ -931,14 +969,16 @@ def send_alerts():
     })
 
 
-
-
 @app.route("/api/zones")
 def get_zones():
-    import json, os
+    import json
+    import os
     from flask import jsonify
 
-    zones_path = os.path.join(os.path.dirname(__file__), "config", "zones.json")
+    zones_path = os.path.join(
+        os.path.dirname(__file__),
+        "config",
+        "zones.json")
 
     if not os.path.exists(zones_path):
         return jsonify([])
@@ -947,7 +987,6 @@ def get_zones():
         zones = json.load(f)
 
     return jsonify(zones)
-
 
 
 @app.route("/api/test-cross-zone")
@@ -983,10 +1022,9 @@ def test_cross_zone():
 
     return jsonify(test_vessel)
 
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
-
-
 
 
 # --- Zone detection helper ---
