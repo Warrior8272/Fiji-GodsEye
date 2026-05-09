@@ -59,6 +59,7 @@ app = Flask(__name__)
 # Global vessel state store
 VESSEL_STATE = {}
 LOITER_STATE = {}
+RENDEZVOUS_STATE = {}
 CORS(app)
 
 init_db()
@@ -173,6 +174,30 @@ def is_in_bbox(vessel, bbox):
     return (lon >= min_lon or lon <= max_lon) and min_lat <= lat <= max_lat
 
 
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    import math
+
+    try:
+        lat1 = float(lat1)
+        lon1 = float(lon1)
+        lat2 = float(lat2)
+        lon2 = float(lon2)
+    except Exception:
+        return None
+
+    r = 6371.0
+    p1 = math.radians(lat1)
+    p2 = math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return r * c
+
+
 def detect_zone(vessel, zones):
     for zone in zones:
         bbox = zone.get("bbox")
@@ -240,6 +265,53 @@ def alerts():
             else:
                 LOITER_STATE.pop(loiter_key, None)
 
+        # Rendezvous detection: two slow vessels close together outside safe port zones
+        now_ts = time.time()
+
+        for i, a in enumerate(vessels):
+            for b in vessels[i + 1:]:
+                a_mmsi = str(a.get("mmsi") or a.get("MMSI") or "UNKNOWN_A")
+                b_mmsi = str(b.get("mmsi") or b.get("MMSI") or "UNKNOWN_B")
+
+                dist = haversine_km(a.get("lat"), a.get("lon"), b.get("lat"), b.get("lon"))
+                if dist is None:
+                    continue
+
+                try:
+                    a_speed = float(a.get("speed", a.get("sog", 0)) or 0)
+                    b_speed = float(b.get("speed", b.get("sog", 0)) or 0)
+                except Exception:
+                    continue
+
+                a_zone = detect_zone(a, ZONES) if "ZONES" in globals() else None
+                b_zone = detect_zone(b, ZONES) if "ZONES" in globals() else None
+
+                a_safe = ((a_zone or {}).get("type", "").lower() in ["port", "harbour", "harbor"])
+                b_safe = ((b_zone or {}).get("type", "").lower() in ["port", "harbour", "harbor"])
+
+                pair_key = "::".join(sorted([a_mmsi, b_mmsi]))
+
+                if dist <= 2.0 and a_speed < 3 and b_speed < 3 and not a_safe and not b_safe:
+                    first_seen = RENDEZVOUS_STATE.get(pair_key, now_ts)
+                    RENDEZVOUS_STATE[pair_key] = first_seen
+                    minutes_close = round((now_ts - first_seen) / 60, 1)
+
+                    if minutes_close >= 10:
+                        alert_list.append({
+                            "type": "RENDEZVOUS_DETECTED",
+                            "risk": "HIGH",
+                            "vessel_a": a_mmsi,
+                            "vessel_b": b_mmsi,
+                            "distance_km": round(dist, 2),
+                            "minutes_close": minutes_close,
+                            "lat": a.get("lat"),
+                            "lon": a.get("lon"),
+                            "zone": ((a_zone or b_zone or {}).get("name") or "Open Water"),
+                            "msg": f"Possible rendezvous: vessels {a_mmsi} and {b_mmsi} stayed within {round(dist, 2)} km for {minutes_close} minutes outside safe port zones"
+                        })
+                else:
+                    RENDEZVOUS_STATE.pop(pair_key, None)
+
         # Coverage gap intelligence alert
         if len(vessels) < 20:
             alert_list.append({
@@ -278,6 +350,72 @@ def loiter_status():
     return jsonify({
         "total_monitored": len(status),
         "loitering": status
+    })
+
+
+
+@app.route("/api/rendezvous-status", methods=["GET"])
+def rendezvous_status():
+    import json
+    from pathlib import Path
+
+    now_ts = time.time()
+    ais_path = Path(__file__).resolve().parent / "ais_live.json"
+
+    try:
+        data = json.loads(ais_path.read_text()) if ais_path.exists() else []
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e), "rendezvous": []})
+
+    vessels = list(data.values()) if isinstance(data, dict) else data
+    candidates = []
+
+    for i, a in enumerate(vessels):
+        for b in vessels[i + 1:]:
+            a_mmsi = str(a.get("mmsi") or a.get("MMSI") or "UNKNOWN_A")
+            b_mmsi = str(b.get("mmsi") or b.get("MMSI") or "UNKNOWN_B")
+
+            a_lat, a_lon = a.get("lat"), a.get("lon")
+            b_lat, b_lon = b.get("lat"), b.get("lon")
+
+            dist = haversine_km(a_lat, a_lon, b_lat, b_lon)
+            if dist is None:
+                continue
+
+            a_speed = float(a.get("speed", a.get("sog", 0)) or 0)
+            b_speed = float(b.get("speed", b.get("sog", 0)) or 0)
+
+            a_zone = detect_zone(a, ZONES) if "ZONES" in globals() else None
+            b_zone = detect_zone(b, ZONES) if "ZONES" in globals() else None
+
+            a_safe = ((a_zone or {}).get("type", "").lower() in ["port", "harbour", "harbor"])
+            b_safe = ((b_zone or {}).get("type", "").lower() in ["port", "harbour", "harbor"])
+
+            pair_key = "::".join(sorted([a_mmsi, b_mmsi]))
+
+            if dist <= 2.0 and a_speed < 3 and b_speed < 3 and not a_safe and not b_safe:
+                first_seen = RENDEZVOUS_STATE.get(pair_key, now_ts)
+                RENDEZVOUS_STATE[pair_key] = first_seen
+                minutes = round((now_ts - first_seen) / 60, 1)
+
+                candidates.append({
+                    "pair": pair_key,
+                    "vessel_a": a_mmsi,
+                    "vessel_b": b_mmsi,
+                    "distance_km": round(dist, 2),
+                    "minutes_close": minutes,
+                    "alert_threshold_minutes": 10,
+                    "status": "ALERT_READY" if minutes >= 10 else "MONITORING",
+                    "lat": a_lat,
+                    "lon": a_lon,
+                    "zone": ((a_zone or b_zone or {}).get("name") or "Open Water")
+                })
+            else:
+                RENDEZVOUS_STATE.pop(pair_key, None)
+
+    return jsonify({
+        "total_pairs_monitored": len(candidates),
+        "rendezvous": candidates
     })
 
 
@@ -1145,6 +1283,30 @@ def is_in_bbox(vessel, bbox):
 
     # Dateline-crossing bbox
     return (lon >= min_lon or lon <= max_lon) and min_lat <= lat <= max_lat
+
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    import math
+
+    try:
+        lat1 = float(lat1)
+        lon1 = float(lon1)
+        lat2 = float(lat2)
+        lon2 = float(lon2)
+    except Exception:
+        return None
+
+    r = 6371.0
+    p1 = math.radians(lat1)
+    p2 = math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return r * c
 
 
 def detect_zone(vessel, zones):
