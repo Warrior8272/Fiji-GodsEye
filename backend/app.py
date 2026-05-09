@@ -16,10 +16,33 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 import time
 from ais_gap import detect_gaps
 from threat_fusion import apply_threat_scores
-VESSEL_STATE = {}
-
 
 ZONES = ZONES if 'ZONES' in globals() else []
+
+# --- FIJI PORT SAFE ZONES ---
+ZONES.append({
+    "name": "Lautoka Port Safe Zone",
+    "type": "port",
+    "country": "Fiji",
+    "bbox": [177.34, -17.66, 177.49, -17.55],
+    "color": "green"
+})
+
+ZONES.append({
+    "name": "Suva Port Safe Zone",
+    "type": "port",
+    "country": "Fiji",
+    "bbox": [178.38, -18.18, 178.49, -18.08],
+    "color": "green"
+})
+
+ZONES.append({
+    "name": "Nadi Bay Safe Zone",
+    "type": "harbour",
+    "country": "Fiji",
+    "bbox": [177.34, -17.82, 177.46, -17.69],
+    "color": "green"
+})
 
 # --- TEST FIJI ZONE ---
 ZONES.append({
@@ -32,6 +55,10 @@ ZONES.append({
 
 
 app = Flask(__name__)
+
+# Global vessel state store
+VESSEL_STATE = {}
+LOITER_STATE = {}
 CORS(app)
 
 init_db()
@@ -154,36 +181,104 @@ def detect_zone(vessel, zones):
     return None
 
 
-@app.route("/api/alerts")
+@app.route("/api/alerts", methods=["GET"])
 def alerts():
-    vessels = apply_threat_scores(list_vessels())
-    alerts = generate_alerts(vessels)
-    gap_alerts = detect_gaps(vessels)
-    alerts.extend(gap_alerts)
-    return jsonify(alerts)
+    import json
+    from pathlib import Path
 
-    for v in vessels:
-        risk = v.get("risk", 0)
-        flags = v.get("risk_flags", [])
-        zone = v.get("zone_name", "Unknown")
-        loiter_time = v.get("loiter_time", 0)
+    alert_list = []
 
-    alerts.append({
-        "id": v.get("id", v.get("mmsi")),
-        "type": "TEST_ALERT",
-        "severity": "LOW",
-        "msg": f"Test alert | MMSI: {v.get('mmsi')} | Zone: {zone}"
-    })
+    try:
+        ais_path = Path(__file__).resolve().parent / "ais_live.json"
+        vessels = []
 
-    if any("route" in str(f).lower() for f in flags):
-        alerts.append({
-            "id": v.get("id"),
-            "type": "ROUTE",
-            "severity": "HIGH",
-            "msg": f"Suspicious route | Risk: {risk} | Flags: {', '.join(flags)}"
+        if ais_path.exists():
+            with open(ais_path, "r") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    vessels = data
+                elif isinstance(data, dict):
+                    vessels = list(data.values())
+
+        # Basic vessel alerts
+        for v in vessels:
+            mmsi = v.get("mmsi", "UNKNOWN")
+            lat = v.get("lat")
+            lon = v.get("lon")
+            speed = v.get("speed", v.get("sog", 0)) or 0
+
+            try:
+                speed = float(speed)
+            except Exception:
+                speed = 0
+
+            zone = detect_zone(v, ZONES) if "ZONES" in globals() else None
+            zone_type = (zone.get("type") if zone else "") or ""
+            zone_name = (zone.get("name") if zone else "") or "Open Water"
+            is_port_safe = zone_type.lower() in ["port", "harbour", "harbor"]
+
+            # True loitering timer: only alert if slow outside safe port for 10+ minutes
+            now_ts = time.time()
+            loiter_key = str(mmsi)
+
+            if speed < 1 and not is_port_safe:
+                first_seen = LOITER_STATE.get(loiter_key, now_ts)
+                LOITER_STATE[loiter_key] = first_seen
+                loiter_minutes = round((now_ts - first_seen) / 60, 1)
+
+                if loiter_minutes >= 10:
+                    alert_list.append({
+                        "type": "LOITERING_OUTSIDE_PORT",
+                        "risk": "HIGH" if not zone else "MEDIUM",
+                        "mmsi": mmsi,
+                        "lat": lat,
+                        "lon": lon,
+                        "zone": zone_name,
+                        "loiter_minutes": loiter_minutes,
+                        "msg": f"Vessel {mmsi} has been slow/stationary for {loiter_minutes} minutes outside a safe port zone near {zone_name}"
+                    })
+            else:
+                LOITER_STATE.pop(loiter_key, None)
+
+        # Coverage gap intelligence alert
+        if len(vessels) < 20:
+            alert_list.append({
+                "type": "AIS_COVERAGE_GAP",
+                "risk": "MEDIUM",
+                "zone": "Fiji / Wider Pacific",
+                "vessel_count": len(vessels),
+                "msg": f"Only {len(vessels)} AIS contacts visible. Possible feed limitation or satellite AIS gap."
+            })
+
+        return jsonify(alert_list)
+
+    except Exception as e:
+        return jsonify([{
+            "type": "ALERT_ENGINE_ERROR",
+            "risk": "HIGH",
+            "msg": str(e)
+        }]), 200
+
+
+
+@app.route("/api/loiter-status", methods=["GET"])
+def loiter_status():
+    now_ts = time.time()
+    status = []
+
+    for mmsi, first_seen in LOITER_STATE.items():
+        minutes = round((now_ts - first_seen) / 60, 1)
+        status.append({
+            "mmsi": mmsi,
+            "loiter_minutes": minutes,
+            "alert_threshold_minutes": 10,
+            "status": "ALERT_READY" if minutes >= 10 else "MONITORING"
         })
 
-    return jsonify(alerts)
+    return jsonify({
+        "total_monitored": len(status),
+        "loitering": status
+    })
 
 
 @app.route("/api/vessels", methods=["GET", "POST"])
@@ -272,8 +367,9 @@ def handle_vessels():
                 vessel.setdefault("risk_flags", []).append("In Port Zone")
 
     vessels = apply_threat_scores(vessels)
-    return jsonify(vessels)
 
+    # SAFE FALLBACK RETURN FOR handle_vessels
+    return jsonify(vessels)
 
 @app.route("/api/vessels/<path:vessel_id>/history")
 def vessel_history(vessel_id):
@@ -363,10 +459,7 @@ def api_ais_gaps():
                     "age_minutes": round(
                         age_seconds / 60,
                         1),
-                    "message": f"AIS signal gap detected for {mmsi}: last update {
-                        round(
-                            age_seconds / 60,
-                            1)} minutes ago",
+                    "message": f"AIS signal gap detected for {mmsi}: last update {round(age_seconds / 60, 1)} minutes ago",
                     "lat": v.get("lat"),
                     "lon": v.get("lon")})
 
@@ -937,8 +1030,10 @@ def send_alerts():
         body += f"Zone: {a['zone']}\n"
         body += f"Speed: {a['speed']} kn\n"
         body += f"Track age: {a['age_hours']} hours\n"
-        body += f"Reason: {'; '.join(a['reasons'])}\n"
-        body += "---\n"
+        body += "Reasons:\n"
+        for r in a.get("reasons", []):
+            body += f"- {r}\n"
+        body += "\n"
 
     # Dry run by default unless email settings are provided
     smtp_user = os.getenv("ALERT_EMAIL_USER")
@@ -1061,3 +1156,68 @@ def detect_zone(vessel, zones):
         if bbox and is_in_bbox(vessel, bbox):
             return zone
     return None
+
+# ===== AIS STATUS PATCH =====
+from datetime import datetime, timezone
+
+def get_status(ts):
+    try:
+        if isinstance(ts, str):
+            ts = ts.replace("Z", "+00:00")
+            t = datetime.fromisoformat(ts)
+        else:
+            return "UNKNOWN"
+
+        now = datetime.now(timezone.utc)
+        diff = (now - t).total_seconds()
+
+        if diff < 300:
+            return "LIVE"
+        elif diff < 1800:
+            return "DELAYED"
+        else:
+            return "STALE"
+    except:
+        return "UNKNOWN"
+# ===== END PATCH =====
+
+
+# ===== RENDEZVOUS DETECTION API =====
+@app.route("/api/rendezvous")
+def api_rendezvous():
+    import json
+    from flask import jsonify
+    from rendezvous_engine import detect_rendezvous
+
+    try:
+        with open("ais_live.json") as f:
+            vessels = json.load(f)
+
+        alerts = detect_rendezvous(vessels)
+        return jsonify(alerts)
+    except Exception as e:
+        return jsonify({"error": str(e), "alerts": []}), 500
+# ===== END RENDEZVOUS DETECTION API =====
+
+
+
+@app.route("/api/vessels/raw")
+def get_raw_vessels():
+    import json
+    import os
+    from flask import jsonify
+
+    try:
+        with open("ais_live.json", "r") as f:
+            data = json.load(f)
+    except Exception:
+        return jsonify([])
+
+    if isinstance(data, dict):
+        data = list(data.values())
+
+    if not isinstance(data, list):
+        data = []
+
+    return jsonify(data)
+
