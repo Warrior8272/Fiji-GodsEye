@@ -32,7 +32,7 @@ function MapOverlays() {
         <Rectangle
           key={z.name}
           bounds={z.bounds}
-          pathOptions={{ color: z.color, weight: 2, fillOpacity: 0.08 }}
+          pathOptions={{ color: z.color, weight: 1, fillOpacity: 0.08 }}
         />
       ))}
 
@@ -40,7 +40,7 @@ function MapOverlays() {
         <Rectangle
           key={p.name}
           bounds={p.bounds}
-          pathOptions={{ color: "red", weight: 2, dashArray: "6 6", fillOpacity: 0.03 }}
+          pathOptions={{ color: "red", weight: 1, dashArray: "6 6", fillOpacity: 0.03 }}
         />
       ))}
     </>
@@ -119,7 +119,7 @@ function FitToData({ vessels, alerts, shouldFit }) {
     }
 
     if (allPoints.length > 1) {
-      map.fitBounds(allPoints, { padding: [40, 40] });
+      map;
     }
   }, [vessels, alerts, shouldFit, map]);
 
@@ -239,6 +239,8 @@ const [intelSummary, setIntelSummary] = useState(null);
   const [aisGaps, setAisGaps] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [routeIntel, setRouteIntel] = useState([]);
+  const [loiterStatus, setLoiterStatus] = useState({ total_monitored: 0, loitering: [] });
+  const [rendezvousStatus, setRendezvousStatus] = useState({ total_pairs_monitored: 0, rendezvous: [] });
 
   const [route, setRoute] = useState([]);
   const [prediction, setPrediction] = useState([]);
@@ -442,6 +444,24 @@ const [opacity, setOpacity] = useState(0.6);
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const loadIntelStatus = () => {
+      fetch("http://127.0.0.1:5000/api/loiter-status")
+        .then((res) => res.json())
+        .then((data) => setLoiterStatus(data))
+        .catch((err) => console.error("Loiter status error:", err));
+
+      fetch("http://127.0.0.1:5000/api/rendezvous-status")
+        .then((res) => res.json())
+        .then((data) => setRendezvousStatus(data))
+        .catch((err) => console.error("Rendezvous status error:", err));
+    };
+
+    loadIntelStatus();
+    const interval = setInterval(loadIntelStatus, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchRoute = async (id, vessel = null, rangeHours = historyRange) => {
     try {
       const res = await fetch(
@@ -556,7 +576,7 @@ const [opacity, setOpacity] = useState(0.6);
         confidence: Number(v.confidence) || 0,
         correlation_score: Number(v.correlation_score) || 0,
       }))
-      .filter((v) => !Number.isNaN(v.lat) && !Number.isNaN(v.lon));
+      .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lon) && v.lat >= -90 && v.lat <= 90 && v.lon >= -180 && v.lon <= 180);
 
     if (highRiskOnly) {
       data = data.filter((v) => ["High", "Critical"].includes(v.risk_level));
@@ -572,7 +592,7 @@ const [opacity, setOpacity] = useState(0.6);
         lat: Number(a.lat),
         lon: Number(a.lon),
       }))
-      .filter((a) => !Number.isNaN(a.lat) && !Number.isNaN(a.lon));
+      .filter((a) => Number.isFinite(a.lat) && Number.isFinite(a.lon) && a.lat >= -90 && a.lat <= 90 && a.lon >= -180 && a.lon <= 180);
 
     if (highRiskOnly) {
       data = data.filter((a) => String(a.severity || "").toLowerCase() === "high");
@@ -706,8 +726,8 @@ const [opacity, setOpacity] = useState(0.6);
         </div>
 
         <MapContainer
-          center={[-17.8, 178.1]}   // Fiji center
-          zoom={6}
+          center={[-17.7134, 178.0650]}   // Fiji center
+          zoom={7}
           scrollWheelZoom={true}
           style={{ height: "100vh", width: "100%" }}
          >
@@ -744,15 +764,15 @@ const [opacity, setOpacity] = useState(0.6);
                 isOnLand(v.lat, v.lon) && Number(v.speed) > 1;
 
               return (
-                <CircleMarker eventHandlers={{ click: () => setSelectedVessel(v) }}
+                <CircleMarker
                   key={`vessel-${v.id}`}
-                  center={[v.lat, v.lon]}
-                  radius={10}
+                  center={[-17.7134, 178.0650]}
+                  radius={4}
                   pathOptions={{
                     color: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
                     fillColor: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
                     fillOpacity: 0.85,
-                    weight: 3,
+                    weight: 1,
                   }}
                   eventHandlers={{
                     click: () => {
@@ -793,13 +813,13 @@ const [opacity, setOpacity] = useState(0.6);
             visibleAlerts.map((a) => (
               <CircleMarker
                 key={`alert-${a.id}`}
-                center={[a.lat, a.lon]}
-                radius={8}
+                center={[-17.7134, 178.0650]}
+                radius={4}
                 pathOptions={{
                   color: getAlertColor(a.severity),
                   fillColor: getAlertColor(a.severity),
                   fillOpacity: 0.9,
-                  weight: 2,
+                  weight: 1,
                 }}
                 eventHandlers={{
                   click: () => {
@@ -825,13 +845,13 @@ const [opacity, setOpacity] = useState(0.6);
             ))}
 
           {route.length > 1 && (
-            <Polyline positions={route} pathOptions={{ color: "blue", weight: 4 }} />
+            <Polyline positions={route} pathOptions={{ color: "blue", weight: 1 }} />
           )}
 
           {prediction.length > 1 && (
             <Polyline
               positions={prediction}
-              pathOptions={{ color: "cyan", weight: 3, dashArray: "6, 6" }}
+              pathOptions={{ color: "cyan", weight: 1, dashArray: "6, 6" }}
             />
           )}
         
@@ -839,8 +859,8 @@ const [opacity, setOpacity] = useState(0.6);
   g.lat && g.lon && (
     <CircleMarker
       key={"gap-" + i}
-      center={[g.lat, g.lon]}
-      radius={12}
+      center={[-17.7134, 178.0650]}
+      radius={4}
       pathOptions={{ color: "#ff0000", fillColor: "#ff0000", fillOpacity: 0.65 }}
     >
       <Tooltip permanent direction="top" offset={[0, -10]} className="dark-vessel-label">
@@ -893,53 +913,101 @@ const [opacity, setOpacity] = useState(0.6);
         </div>
 
         <hr style={{ borderColor: "#222", margin: "16px 0" }} />
-        <h3 style={{ marginTop: 0 }}>🔥 Top Threats
+          <h3 style={{ marginTop: 0 }}>🔥 Top Threats</h3>
+          <div style={{ fontSize: "12px", opacity: 0.7, marginBottom: "12px" }}>
+            No active high-threat vessels detected.
+          </div>
 
-<h4 style={{ color: "#ffaa00", marginTop: "12px" }}>🧭 Route Intelligence</h4>
-{routeIntel.length === 0 && (
-  <div style={{ fontSize: "12px", opacity: 0.7 }}>No route activity</div>
-)}
-{routeIntel.slice(0,5).map((r, i) => (
-  <div key={i} style={{
-    background: "#1a1a00",
-    border: "1px solid #ffaa00",
-    padding: "6px",
-    marginBottom: "4px",
-    borderRadius: "6px",
-    fontSize: "12px"
-  }}>
-    <b>{r.name}</b><br/>
-    Score: {r.score} ({r.severity})<br/>
-    {r.indicators?.[0]}
-  </div>
-))}
-</h3>
+          <h4 style={{ color: "#ffaa00", marginTop: "12px" }}>🧭 Route Intelligence</h4>
+          {routeIntel.length === 0 && (
+            <div style={{ fontSize: "12px", opacity: 0.7 }}>No route activity</div>
+          )}
+          {routeIntel.slice(0,5).map((r, i) => (
+            <div key={i} style={{
+              background: "#1a1a00",
+              border: "1px solid #ffaa00",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{r.name}</b><br/>
+              Score: {r.score} ({r.severity})<br/>
+              {r.indicators?.[0]}
+            </div>
+          ))}
 
-<h4 style={{ color: "#ff4444", marginTop: "10px" }}>🚨 Active Alerts</h4>
-{alerts.length === 0 && (
-  <div style={{ fontSize: "12px", opacity: 0.7 }}>No alerts</div>
-)}
-{alerts.map((a, idx) => (
-  <div key={idx} style={{
-    background: "#2a0000",
-    padding: "6px",
-    marginBottom: "4px",
-    borderRadius: "6px",
-    fontSize: "12px"
-  }}>
-    <b>{a.type}</b><br/>
-    <div className={`threat-badge threat-${
-      (a.severity || (a.type === "LOITERING" ? "high" : "medium")).toLowerCase()
-    }`}>
-      {(a.severity || (a.type === "LOITERING" ? "high" : "medium")).toUpperCase()} RISK
-    </div>
+          <h4 style={{ color: "#00d4ff", marginTop: "14px" }}>🕒 Loitering Monitor</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Tracking: {loiterStatus?.total_monitored || 0}
+          </div>
+          {(loiterStatus?.loitering || []).slice(0,5).map((l, i) => (
+            <div key={i} style={{
+              background: "#001a22",
+              border: "1px solid #00d4ff",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{l.status}</b><br/>
+              MMSI: {l.mmsi}<br/>
+              Time: {l.loiter_minutes} / {l.alert_threshold_minutes} min
+            </div>
+          ))}
 
-    
+          <h4 style={{ color: "#ff66cc", marginTop: "14px" }}>🤝 Rendezvous Monitor</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Pairs tracking: {rendezvousStatus?.total_pairs_monitored || 0}
+          </div>
+          {(rendezvousStatus?.rendezvous || []).slice(0,5).map((r, i) => (
+            <div key={i} style={{
+              background: "#220018",
+              border: "1px solid #ff66cc",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{r.status}</b><br/>
+              {r.vessel_a} ↔ {r.vessel_b}<br/>
+              Distance: {r.distance_km} km<br/>
+              Time: {r.minutes_close} / {r.alert_threshold_minutes} min
+            </div>
+          ))}
 
-    {a.msg}<br/>
-    {a.id}
-  </div>
-))}
+          <h4 style={{ color: "#ff4444", marginTop: "10px" }}>🚨 Active Alerts</h4>
+          {alerts.length === 0 && (
+            <div style={{ fontSize: "12px", opacity: 0.7 }}>No alerts</div>
+          )}
+          {alerts.map((a, idx) => (
+            <div
+              key={idx}
+              onClick={() => {
+                setSelected(a);
+                setSelectedType("alert");
+                if (a.lat && a.lon) {
+                  window.dispatchEvent(new CustomEvent("locate-selected-vessel", {
+                    detail: { lat: a.lat, lon: a.lon }
+                  }));
+                }
+              }}
+              style={{
+              background: "#2a0000",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px",
+              cursor: "pointer"
+            }}>
+              <b>{a.type}</b><br/>
+              <div className={`threat-badge threat-${(a.risk || a.severity || "medium").toLowerCase()}`}>
+                {(a.risk || a.severity || "medium").toUpperCase()} RISK
+              </div>
+              {a.msg}<br/>
+              {a.zone && <span>Zone: {a.zone}</span>}
+            </div>
+          ))}
 
 <div style={{marginTop:"16px",padding:"12px",background:"#111",borderRadius:"12px",border:"1px solid #222"}}>
 
