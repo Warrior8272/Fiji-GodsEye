@@ -1713,25 +1713,6 @@ const [opacity, setOpacity] = useState(0.6);
                 {(a.risk || a.severity || "medium").toUpperCase()} RISK
               </div>
               {a.msg}<br/>
-
-              {(a.type === "REMOTE_STOP_COORDINATE_CAPTURED" || a.type === "PORT_REMOTE_RETURN") && (
-                <div style={{ marginTop: "6px", fontSize: "12px", lineHeight: "1.45" }}>
-                  <b>Origin Port:</b> {a.origin_port || "Unknown"}<br/>
-                  {a.returned_to_port && (
-                    <>
-                      <b>Returned To:</b> {a.returned_to_port}<br/>
-                    </>
-                  )}
-                  <b>Stop Coordinates:</b> {a.stop_lat}, {a.stop_lon}<br/>
-                  <b>Distance From Port:</b> {a.distance_from_origin_port_km || "Unknown"} km<br/>
-                  {a.stopped_at && (
-                    <>
-                      <b>Stopped At:</b> {a.stopped_at}<br/>
-                    </>
-                  )}
-                  <b>Assessment:</b> Requires analyst review
-                </div>
-              )}
               {a.zone && <span>Zone: {a.zone}</span>}
             </div>
           ))}

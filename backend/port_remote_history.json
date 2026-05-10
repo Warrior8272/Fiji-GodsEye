@@ -1,0 +1,109 @@
+{
+  "563991000": {
+    "mmsi": "563991000",
+    "name": "APIA CHIEF",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": null,
+    "last_seen": "2026-05-10T23:46:54.088481+00:00",
+    "remote_stops": []
+  },
+  "520309000": {
+    "mmsi": "520309000",
+    "name": "MV PANTHER",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": null,
+    "last_seen": "2026-05-10T23:46:54.088503+00:00",
+    "remote_stops": []
+  },
+  "538071191": {
+    "mmsi": "538071191",
+    "name": "EXPLORA",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": null,
+    "last_seen": "2026-05-10T23:46:54.088510+00:00",
+    "remote_stops": []
+  },
+  "352006002": {
+    "mmsi": "352006002",
+    "name": "CAPITAINE WALLIS",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": "Lautoka Port",
+    "last_seen": "2026-05-10T23:46:54.088516+00:00",
+    "remote_stops": []
+  },
+  "235085287": {
+    "mmsi": "235085287",
+    "name": "FIDELIS",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": null,
+    "last_seen": "2026-05-10T23:46:54.088521+00:00",
+    "remote_stops": []
+  },
+  "311001081": {
+    "mmsi": "311001081",
+    "name": "SEABOURN PURSUIT",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": "Lautoka Port",
+    "last_seen": "2026-05-10T23:46:54.088526+00:00",
+    "remote_stops": []
+  },
+  "311746000": {
+    "mmsi": "311746000",
+    "name": "NORWEGIAN SPIRIT",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": "Lautoka Port",
+    "last_seen": "2026-05-10T23:46:54.088532+00:00",
+    "remote_stops": []
+  },
+  "319245300": {
+    "mmsi": "319245300",
+    "name": "ARROW",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": null,
+    "last_seen": "2026-05-10T23:46:54.088537+00:00",
+    "remote_stops": []
+  },
+  "319080000": {
+    "mmsi": "319080000",
+    "name": "HAIDA 1929",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": null,
+    "last_seen": "2026-05-10T23:46:54.088542+00:00",
+    "remote_stops": []
+  },
+  "253000026": {
+    "mmsi": "253000026",
+    "name": "ANTHAS",
+    "origin_port": null,
+    "departed_port_at": null,
+    "last_port_seen": null,
+    "last_seen": "2026-05-10T23:46:54.088551+00:00",
+    "remote_stops": []
+  },
+  "999000111": {
+    "mmsi": "999000111",
+    "name": "TEST VESSEL",
+    "origin_port": "Lautoka Port",
+    "departed_port_at": "2026-05-10T22:50:01.272139+00:00",
+    "last_port_seen": "Lautoka Port",
+    "last_seen": "2026-05-10T22:50:01.272106+00:00",
+    "remote_stops": [
+      {
+        "lat": -17.95,
+        "lon": 177.9,
+        "stopped_at": "2026-05-10T22:50:01.272148+00:00",
+        "speed": 0.0,
+        "distance_from_origin_port_km": 62.24
+      }
+    ]
+  }
+}

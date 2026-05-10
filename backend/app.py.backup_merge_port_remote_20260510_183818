@@ -374,36 +374,6 @@ def alerts():
                 "msg": f"Only {len(vessels)} AIS contacts visible. Possible feed limitation or satellite AIS gap."
             })
 
-
-        # Port → Remote Stop → Return pattern detection
-        try:
-            from port_remote_detector import detect_port_remote_patterns
-            port_remote_alerts = detect_port_remote_patterns(vessels)
-
-            for pra in port_remote_alerts:
-                alert_list.append({
-                    "type": pra.get("type", "PORT_REMOTE_PATTERN"),
-                    "risk": pra.get("risk", "MEDIUM"),
-                    "score": pra.get("score", 60),
-                    "mmsi": pra.get("mmsi"),
-                    "name": pra.get("name"),
-                    "lat": pra.get("stop_lat") or pra.get("lat"),
-                    "lon": pra.get("stop_lon") or pra.get("lon"),
-                    "origin_port": pra.get("origin_port"),
-                    "returned_to_port": pra.get("returned_to_port"),
-                    "stop_lat": pra.get("stop_lat"),
-                    "stop_lon": pra.get("stop_lon"),
-                    "stopped_at": pra.get("stopped_at"),
-                    "distance_from_origin_port_km": pra.get("distance_from_origin_port_km"),
-                    "msg": pra.get("summary") or pra.get("reason") or "Port-to-remote movement pattern detected"
-                })
-        except Exception as e:
-            alert_list.append({
-                "type": "PORT_REMOTE_DETECTOR_ERROR",
-                "risk": "LOW",
-                "msg": str(e)
-            })
-
         return jsonify(alert_list)
 
     except Exception as e:
