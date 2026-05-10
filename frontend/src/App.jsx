@@ -16,6 +16,9 @@ const coverageZones = [
   { name: "Central / Suva Watch Zone", bounds: [[-18.5, 177.3], [-17.4, 178.8]], color: "orange" },
   { name: "Vanua Levu Watch Zone", bounds: [[-17.0, 178.0], [-15.5, 180.0]], color: "orange" },
   { name: "Kadavu Southern Watch Zone", bounds: [[-19.6, 177.0], [-18.5, 179.4]], color: "orange" },
+  { name: "French Polynesia / Tahiti Watch Zone", bounds: [[-22.0, -154.0], [-14.0, -146.0]], color: "orange" },
+  { name: "Marquesas Northern Watch Zone", bounds: [[-11.0, -142.5], [-7.0, -137.0]], color: "orange" },
+  { name: "Tuamotu Archipelago Watch Zone", bounds: [[-24.0, -149.0], [-13.0, -134.0]], color: "orange" },
 ];
 
 const portZones = [
@@ -96,10 +99,6 @@ function FitToData({ vessels, alerts, shouldFit }) {
 
   useEffect(() => {
 
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
 
     if (!shouldFit) return;
 
@@ -130,12 +129,6 @@ function FollowSelected({ selected, selectedType, followMode }) {
   const map = useMap();
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     if (!followMode) return;
     if (!selected) return;
     if (selectedType !== "vessel") return;
@@ -155,12 +148,6 @@ function LocateSelectedVessel() {
   const map = useMap();
 
   useEffect(() => {
-
-  fetch("http://127.0.0.1:5000/api/intel-summary")
-    .then(res => res.json())
-    .then(data => setIntelSummary(data))
-    .catch(err => console.error("Intel summary error:", err));
-
     const handler = (event) => {
       const lat = Number(event.detail?.lat);
       const lon = Number(event.detail?.lon);
@@ -217,8 +204,14 @@ function projectPoint(lat, lon, courseDeg, distanceKm = 3) {
 }
 
 function formatFlags(flags) {
-  if (!flags || flags.length === 0) return "None";
-  return flags.join(", ");
+  if (!flags) return "None";
+  if (Array.isArray(flags)) {
+    return flags.length ? flags.join(", ") : "None";
+  }
+  if (typeof flags === "object") {
+    return Object.values(flags).flat().filter(Boolean).join(", ") || "None";
+  }
+  return String(flags);
 }
 
 function MiniStat({ label, value }) {
@@ -231,6 +224,7 @@ function MiniStat({ label, value }) {
 
 export default function App() {
   const [selectedVessel, setSelectedVessel] = useState(null);
+  const [vesselProfile, setVesselProfile] = useState(null);
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
 
@@ -241,6 +235,20 @@ const [intelSummary, setIntelSummary] = useState(null);
   const [routeIntel, setRouteIntel] = useState([]);
   const [loiterStatus, setLoiterStatus] = useState({ total_monitored: 0, loitering: [] });
   const [rendezvousStatus, setRendezvousStatus] = useState({ total_pairs_monitored: 0, rendezvous: [] });
+const [timelineData, setTimelineData] = useState([]);
+const [networkData, setNetworkData] = useState({ zones: [], connections: [], events: [] });
+  const [darkActivity, setDarkActivity] = useState({ total_dark_activity: 0, dark_activity: [] });
+  const [clusterIntel, setClusterIntel] = useState({ total_clusters: 0, clusters: [] });
+  const [operationalReport, setOperationalReport] = useState(null);
+  const [feedCoverage, setFeedCoverage] = useState({ total_vessels: 0, coverage: [] });
+  const [cyberThreats, setCyberThreats] = useState({ total: 0, events: [] });
+  const [fusionIntel, setFusionIntel] = useState(null);
+  const [satMismatch, setSatMismatch] = useState({ total_mismatches: 0, mismatches: [] });
+  const [briefing, setBriefing] = useState(null);
+  const [escalationAlerts, setEscalationAlerts] = useState({ total_alerts: 0, alerts: [] });
+  const [dbEvents, setDbEvents] = useState({ events: [] });
+  const [cases, setCases] = useState({ cases: [] });
+  const [predictiveIntel, setPredictiveIntel] = useState({ total_predictions: 0, predictions: [] });
 
   const [route, setRoute] = useState([]);
   const [prediction, setPrediction] = useState([]);
@@ -365,6 +373,45 @@ const [opacity, setOpacity] = useState(0.6);
 
 
 
+
+  useEffect(() => {
+    if (selected && selectedType === "vessel" && selected.mmsi) {
+
+      fetch(`http://127.0.0.1:5000/api/timeline/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setTimelineData(data.timeline || []);
+        })
+        .catch((err) => {
+          console.error("Timeline error:", err);
+          setTimelineData([]);
+        });
+
+      fetch(`http://127.0.0.1:5000/api/network/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setNetworkData(data || { zones: [], connections: [], events: [] });
+        })
+        .catch((err) => {
+          console.error("Network error:", err);
+          setNetworkData({ zones: [], connections: [], events: [] });
+        });
+
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => setVesselProfile(data))
+        .catch((err) => {
+          console.error("Vessel profile error:", err);
+          setVesselProfile(null);
+        });
+
+    } else {
+      setTimelineData([]);
+      setNetworkData({ zones: [], connections: [], events: [] });
+      setVesselProfile(null);
+    }
+  }, [selected, selectedType]);
+
   useEffect(() => {
 
   fetch("http://127.0.0.1:5000/api/intel-summary")
@@ -380,7 +427,42 @@ const [opacity, setOpacity] = useState(0.6);
         })
         .then((data) => {
           const parsed = Array.isArray(data) ? data : [];
-          setVessels(parsed);
+
+          const memory = JSON.parse(localStorage.getItem("godsEyeVesselMemory") || "{}");
+
+          const enrichedParsed = parsed.map((v) => {
+            const vid = String(v.mmsi || v.id || "unknown");
+
+            if (!memory[vid]) {
+              memory[vid] = {
+                sightings: 0,
+                first_seen: new Date().toISOString(),
+                last_seen: null,
+                threat_hits: 0
+              };
+            }
+
+            memory[vid].sightings += 1;
+            memory[vid].last_seen = new Date().toISOString();
+
+            if (
+              String(v.threat_level || "").toUpperCase() === "HIGH" ||
+              String(v.threat_level || "").toUpperCase() === "CRITICAL" ||
+              Number(v.threat_score || v.risk || 0) >= 40
+            ) {
+              memory[vid].threat_hits += 1;
+            }
+
+            return {
+              ...v,
+              persistent_memory: memory[vid],
+              repeat_offender: memory[vid].threat_hits >= 3 || memory[vid].sightings >= 10
+            };
+          });
+
+          localStorage.setItem("godsEyeVesselMemory", JSON.stringify(memory));
+
+          setVessels(enrichedParsed);
           setVesselError("");
 
           if (selected && selectedType === "vessel") {
@@ -399,8 +481,47 @@ const [opacity, setOpacity] = useState(0.6);
     };
 
     loadVessels();
-    const interval = setInterval(loadVessels, 5000);
+    const interval = setInterval(loadVessels, 15000);
     return () => clearInterval(interval);
+  }, [selected, selectedType]);
+
+
+  useEffect(() => {
+    if (selected && selectedType === "vessel" && selected.mmsi) {
+
+      fetch(`http://127.0.0.1:5000/api/timeline/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setTimelineData(data.timeline || []);
+        })
+        .catch((err) => {
+          console.error("Timeline error:", err);
+          setTimelineData([]);
+        });
+
+      fetch(`http://127.0.0.1:5000/api/network/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setNetworkData(data || { zones: [], connections: [], events: [] });
+        })
+        .catch((err) => {
+          console.error("Network error:", err);
+          setNetworkData({ zones: [], connections: [], events: [] });
+        });
+
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => setVesselProfile(data))
+        .catch((err) => {
+          console.error("Vessel profile error:", err);
+          setVesselProfile(null);
+        });
+
+    } else {
+      setTimelineData([]);
+      setNetworkData({ zones: [], connections: [], events: [] });
+      setVesselProfile(null);
+    }
   }, [selected, selectedType]);
 
   useEffect(() => {
@@ -429,9 +550,48 @@ const [opacity, setOpacity] = useState(0.6);
     };
 
     loadAlerts();
-    const interval = setInterval(loadAlerts, 10000);
+    const interval = setInterval(loadAlerts, 30000);
     return () => clearInterval(interval);
   }, []);
+
+
+  useEffect(() => {
+    if (selected && selectedType === "vessel" && selected.mmsi) {
+
+      fetch(`http://127.0.0.1:5000/api/timeline/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setTimelineData(data.timeline || []);
+        })
+        .catch((err) => {
+          console.error("Timeline error:", err);
+          setTimelineData([]);
+        });
+
+      fetch(`http://127.0.0.1:5000/api/network/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setNetworkData(data || { zones: [], connections: [], events: [] });
+        })
+        .catch((err) => {
+          console.error("Network error:", err);
+          setNetworkData({ zones: [], connections: [], events: [] });
+        });
+
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => setVesselProfile(data))
+        .catch((err) => {
+          console.error("Vessel profile error:", err);
+          setVesselProfile(null);
+        });
+
+    } else {
+      setTimelineData([]);
+      setNetworkData({ zones: [], connections: [], events: [] });
+      setVesselProfile(null);
+    }
+  }, [selected, selectedType]);
 
   useEffect(() => {
 
@@ -455,10 +615,70 @@ const [opacity, setOpacity] = useState(0.6);
         .then((res) => res.json())
         .then((data) => setRendezvousStatus(data))
         .catch((err) => console.error("Rendezvous status error:", err));
+
+      fetch("http://127.0.0.1:5000/api/dark-activity")
+        .then((res) => res.json())
+        .then((data) => setDarkActivity(data))
+        .catch((err) => console.error("Dark activity error:", err));
+
+      fetch("http://127.0.0.1:5000/api/cluster-intelligence")
+        .then((res) => res.json())
+        .then((data) => setClusterIntel(data))
+        .catch((err) => console.error("Cluster intelligence error:", err));
+
+      fetch("http://127.0.0.1:5000/api/operational-report")
+        .then((res) => res.json())
+        .then((data) => setOperationalReport(data))
+        .catch((err) => console.error("Operational report error:", err));
+
+      fetch("http://127.0.0.1:5000/api/feed-coverage")
+        .then((res) => res.json())
+        .then((data) => setFeedCoverage(data))
+        .catch((err) => console.error("Feed coverage error:", err));
+
+      fetch("http://127.0.0.1:5000/api/cyber-threats")
+        .then((res) => res.json())
+        .then((data) => setCyberThreats(data))
+        .catch((err) => console.error("Cyber threat error:", err));
+
+      fetch("http://127.0.0.1:5000/api/fusion-intelligence")
+        .then((res) => res.json())
+        .then((data) => setFusionIntel(data))
+        .catch((err) => console.error("Fusion intelligence error:", err));
+
+      fetch("http://127.0.0.1:5000/api/satellite-mismatch")
+        .then((res) => res.json())
+        .then((data) => setSatMismatch(data))
+        .catch((err) => console.error("Satellite mismatch error:", err));
+
+      fetch("http://127.0.0.1:5000/api/operational-briefing")
+        .then((res) => res.json())
+        .then((data) => setBriefing(data))
+        .catch((err) => console.error("Operational briefing error:", err));
+
+      fetch("http://127.0.0.1:5000/api/escalation-alerts")
+        .then((res) => res.json())
+        .then((data) => setEscalationAlerts(data))
+        .catch((err) => console.error("Escalation alerts error:", err));
+
+      fetch("http://127.0.0.1:5000/api/db/events?token=gods_eye_pacific_admin_2026")
+        .then((res) => res.json())
+        .then((data) => setDbEvents(data))
+        .catch((err) => console.error("DB events error:", err));
+
+      fetch("http://127.0.0.1:5000/api/cases?token=gods_eye_pacific_admin_2026")
+        .then((res) => res.json())
+        .then((data) => setCases(data))
+        .catch((err) => console.error("Cases error:", err));
+
+      fetch("http://127.0.0.1:5000/api/predictive-intelligence?test=1")
+        .then((res) => res.json())
+        .then((data) => setPredictiveIntel(data))
+        .catch((err) => console.error("Predictive intelligence error:", err));
     };
 
     loadIntelStatus();
-    const interval = setInterval(loadIntelStatus, 10000);
+    const interval = setInterval(loadIntelStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -525,6 +745,45 @@ const [opacity, setOpacity] = useState(0.6);
     }
   };
 
+
+  useEffect(() => {
+    if (selected && selectedType === "vessel" && selected.mmsi) {
+
+      fetch(`http://127.0.0.1:5000/api/timeline/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setTimelineData(data.timeline || []);
+        })
+        .catch((err) => {
+          console.error("Timeline error:", err);
+          setTimelineData([]);
+        });
+
+      fetch(`http://127.0.0.1:5000/api/network/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setNetworkData(data || { zones: [], connections: [], events: [] });
+        })
+        .catch((err) => {
+          console.error("Network error:", err);
+          setNetworkData({ zones: [], connections: [], events: [] });
+        });
+
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => setVesselProfile(data))
+        .catch((err) => {
+          console.error("Vessel profile error:", err);
+          setVesselProfile(null);
+        });
+
+    } else {
+      setTimelineData([]);
+      setNetworkData({ zones: [], connections: [], events: [] });
+      setVesselProfile(null);
+    }
+  }, [selected, selectedType]);
+
   useEffect(() => {
 
   fetch("http://127.0.0.1:5000/api/intel-summary")
@@ -536,6 +795,45 @@ const [opacity, setOpacity] = useState(0.6);
       fetchRoute(selected.id, selected, historyRange);
     }
   }, [historyRange]);
+
+
+  useEffect(() => {
+    if (selected && selectedType === "vessel" && selected.mmsi) {
+
+      fetch(`http://127.0.0.1:5000/api/timeline/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setTimelineData(data.timeline || []);
+        })
+        .catch((err) => {
+          console.error("Timeline error:", err);
+          setTimelineData([]);
+        });
+
+      fetch(`http://127.0.0.1:5000/api/network/${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setNetworkData(data || { zones: [], connections: [], events: [] });
+        })
+        .catch((err) => {
+          console.error("Network error:", err);
+          setNetworkData({ zones: [], connections: [], events: [] });
+        });
+
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+        .then((res) => res.json())
+        .then((data) => setVesselProfile(data))
+        .catch((err) => {
+          console.error("Vessel profile error:", err);
+          setVesselProfile(null);
+        });
+
+    } else {
+      setTimelineData([]);
+      setNetworkData({ zones: [], connections: [], events: [] });
+      setVesselProfile(null);
+    }
+  }, [selected, selectedType]);
 
   useEffect(() => {
 
@@ -627,7 +925,7 @@ const [opacity, setOpacity] = useState(0.6);
             color: "#fff",
             padding: "12px 14px",
             borderRadius: "12px",
-            minWidth: "230px",
+            width: "180px",
             boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
             fontSize: "14px",
           }}
@@ -722,7 +1020,47 @@ const [opacity, setOpacity] = useState(0.6);
             Locate selected vessel
           </button>
 
-          <div style={{ opacity: 0.9 }}>Visible items: {totalVisible}</div>
+          <div style={{ opacity: 0.9, marginBottom: "10px" }}>Visible items: {totalVisible}</div>
+
+          <div style={{ marginTop: "10px", borderTop: "1px solid #333", paddingTop: "10px" }}>
+            <div style={{ fontWeight: "bold", marginBottom: "6px" }}>Regional Jump</div>
+
+            {[
+              ["Fiji", -17.7134, 178.0650, 7],
+              ["Samoa", -13.7590, -172.1046, 7],
+              ["Tonga", -21.1790, -175.1982, 7],
+              ["Vanuatu", -16.2902, 167.6924, 6],
+              ["PNG", -6.3150, 143.9555, 5],
+              ["Pacific", -15.0000, -170.0000, 4],
+              ["French Polynesia", -17.6797, -149.4068, 5],
+              ["Tahiti", -17.6509, -149.4260, 8],
+              ["Marquesas", -9.0000, -140.0000, 6],
+              ["Tuamotu", -18.0000, -142.0000, 5]
+            ].map(([name, lat, lon, zoom]) => (
+              <button
+                key={name}
+                onClick={() => {
+                  setShouldFit(false);
+                  window.dispatchEvent(new CustomEvent("locate-selected-vessel", {
+                    detail: { lat, lon, zoom }
+                  }));
+                }}
+                style={{
+                  width: "100%",
+                  margin: "2px",
+                  padding: "6px",
+                  borderRadius: "6px",
+                  border: "1px solid #333",
+                  background: "#111",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: "11px"
+                }}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
         </div>
 
         <MapContainer
@@ -763,16 +1101,34 @@ const [opacity, setOpacity] = useState(0.6);
               const movingLandAnomaly =
                 isOnLand(v.lat, v.lon) && Number(v.speed) > 1;
 
+                const vesselLat = Number(v.lat);
+                const vesselLon = Number(v.lon);
+                if (!Number.isFinite(vesselLat) || !Number.isFinite(vesselLon)) return null;
+                const vesselPosition = [vesselLat, vesselLon];
+
               return (
                 <CircleMarker
-                  key={`vessel-${v.id}`}
-                  center={[-17.7134, 178.0650]}
-                  radius={4}
+                    key={`vessel-${v.mmsi || v.id || String(v.lat) + "-" + String(v.lon)}`}
+                    center={vesselPosition}
+                  radius={
+                    String(v.threat_level || "").toUpperCase() === "CRITICAL" ? 10 :
+                    String(v.threat_level || "").toUpperCase() === "HIGH" ? 8 :
+                    String(v.threat_level || "").toUpperCase() === "MEDIUM" ? 6 :
+                    4
+                  }
                   pathOptions={{
-                    color: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
-                    fillColor: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
-                    fillOpacity: 0.85,
-                    weight: 1,
+                    color: movingLandAnomaly ? "purple" :
+                      String(v.threat_level || "").toUpperCase() === "CRITICAL" ? "#ff0000" :
+                      String(v.threat_level || "").toUpperCase() === "HIGH" ? "#ff3333" :
+                      String(v.threat_level || "").toUpperCase() === "MEDIUM" ? "#ffaa00" :
+                      "#39ff14",
+                    fillColor: movingLandAnomaly ? "purple" :
+                      String(v.threat_level || "").toUpperCase() === "CRITICAL" ? "#ff0000" :
+                      String(v.threat_level || "").toUpperCase() === "HIGH" ? "#ff3333" :
+                      String(v.threat_level || "").toUpperCase() === "MEDIUM" ? "#ffaa00" :
+                      "#39ff14",
+                    fillOpacity: 1,
+                    weight: String(v.threat_level || "").toUpperCase() === "CRITICAL" ? 4 : 2,
                   }}
                   eventHandlers={{
                     click: () => {
@@ -797,7 +1153,11 @@ const [opacity, setOpacity] = useState(0.6);
                     <br />
                     Confidence: {v.confidence}
                     <br />
-                    Risk Level: {v.risk_level}
+                    Risk Level: {v.threat_level || v.risk_level}
+                    <br />
+                    Offender: {v.memory?.offender_status || "NEW"}
+                    <br />
+                    Repeat Score: {v.memory?.repeat_offender_score ?? 0}
                     <br />
                     Lat: {v.lat}
                     <br />
@@ -909,14 +1269,72 @@ const [opacity, setOpacity] = useState(0.6);
 
         <div style={{ marginBottom: "16px", fontSize: "14px", opacity: 0.9 }}>
           <div>Vessels: {loadingVessels ? "Loading..." : visibleVessels.length}</div>
+          <div>
+            Unique positions: {
+              new Set(
+                visibleVessels.map(v =>
+                  `${Number(v.lat).toFixed(3)},${Number(v.lon).toFixed(3)}`
+                )
+              ).size
+            }
+          </div>
+          <div>
+            Overlapping/clustered: {
+              Math.max(
+                0,
+                visibleVessels.length -
+                new Set(
+                  visibleVessels.map(v =>
+                    `${Number(v.lat).toFixed(3)},${Number(v.lon).toFixed(3)}`
+                  )
+                ).size
+              )
+            }
+          </div>
           <div>Alerts: {loadingAlerts ? "Loading..." : visibleAlerts.length}</div>
         </div>
 
         <hr style={{ borderColor: "#222", margin: "16px 0" }} />
           <h3 style={{ marginTop: 0 }}>🔥 Top Threats</h3>
-          <div style={{ fontSize: "12px", opacity: 0.7, marginBottom: "12px" }}>
-            No active high-threat vessels detected.
-          </div>
+          {visibleVessels
+            .filter((v) => (Number(v.threat_score || v.risk || 0) > 0) || String(v.threat_level || "").toUpperCase() !== "LOW")
+            .sort((a, b) => Number(b.threat_score || b.risk || 0) - Number(a.threat_score || a.risk || 0))
+            .slice(0, 5)
+            .map((v, i) => (
+              <div
+                key={v.id || v.mmsi || i}
+                onClick={() => {
+                  setSelected(v);
+                  setSelectedType("vessel");
+                  if (v.lat && v.lon) {
+                    window.dispatchEvent(new CustomEvent("locate-selected-vessel", {
+                      detail: { lat: v.lat, lon: v.lon }
+                    }));
+                  }
+                }}
+                style={{
+                  background: "#1a0000",
+                  border: "1px solid #ff4444",
+                  padding: "8px",
+                  marginBottom: "6px",
+                  borderRadius: "6px",
+                  fontSize: "11px",
+                  cursor: "pointer"
+                }}
+              >
+                <b>{i + 1}. {v.name || v.ship_name || v.mmsi || "Unknown Vessel"}</b><br/>
+                Threat: {v.threat_score || v.risk || 0} / {v.threat_level || v.risk_level || "Unknown"}<br/>
+                Offender: {v.memory?.offender_status || "NEW"} ({v.memory?.repeat_offender_score ?? 0})<br/>
+                Speed: {v.speed ?? "?"} kn<br/>
+                Flags: {formatFlags(v.threat_reasons || v.risk_flags || v.anomaly_flags)}
+              </div>
+            ))}
+
+          {visibleVessels.filter((v) => (Number(v.threat_score || v.risk || 0) > 0) || String(v.threat_level || "").toUpperCase() !== "LOW").length === 0 && (
+            <div style={{ fontSize: "12px", opacity: 0.7, marginBottom: "12px" }}>
+              No active high-threat vessels detected.
+            </div>
+          )}
 
           <h4 style={{ color: "#ffaa00", marginTop: "12px" }}>🧭 Route Intelligence</h4>
           {routeIntel.length === 0 && (
@@ -929,7 +1347,8 @@ const [opacity, setOpacity] = useState(0.6);
               padding: "6px",
               marginBottom: "4px",
               borderRadius: "6px",
-              fontSize: "12px"
+              fontSize: "12px",
+              cursor: "pointer"
             }}>
               <b>{r.name}</b><br/>
               Score: {r.score} ({r.severity})<br/>
@@ -969,10 +1388,299 @@ const [opacity, setOpacity] = useState(0.6);
               borderRadius: "6px",
               fontSize: "12px"
             }}>
-              <b>{r.status}</b><br/>
+              <b>{r.status}</b> — {r.severity || "MONITORING"}<br/>
               {r.vessel_a} ↔ {r.vessel_b}<br/>
+              Score: {r.rendezvous_score ?? 0}<br/>
               Distance: {r.distance_km} km<br/>
-              Time: {r.minutes_close} / {r.alert_threshold_minutes} min
+              Time: {r.minutes_close} / {r.alert_threshold_minutes} min<br/>
+              Zone: {r.zone || "Open Water"}<br/>
+              Indicators: {formatFlags(r.indicators)}
+            </div>
+          ))}
+
+          <h4 style={{ color: "#ffcc00", marginTop: "14px" }}>🔮 Predictive Intelligence</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Predicted sectors: {predictiveIntel?.total_predictions || 0}
+          </div>
+          {(predictiveIntel?.predictions || []).slice(0,5).map((p, i) => (
+            <div key={i} style={{
+              background: "#1f1800",
+              border: "1px solid #ffcc00",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{p.severity}</b> — Score {p.prediction_score}<br/>
+              Sector: {p.sector}<br/>
+              Forecast: {p.forecast}<br/>
+              Threat: {p.threat_activity} | Dark: {p.dark_activity} | Rendezvous: {p.rendezvous_activity}
+            </div>
+          ))}
+
+          <h4 style={{ color: "#ffaa66", marginTop: "14px" }}>🗂 Investigation Cases</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Active cases: {(cases?.cases || []).length}
+          </div>
+
+          {(cases?.cases || []).slice(0,5).map((c, i) => (
+            <div
+              key={i}
+              onClick={() => {
+                fetch(`http://127.0.0.1:5000/api/cases/zone?token=gods_eye_pacific_admin_2026&zone=${encodeURIComponent(c.zone)}`)
+                  .then((res) => res.json())
+                  .then((z) => {
+                    if (z.lat && z.lon) {
+                      setShouldFit(false);
+                      window.dispatchEvent(new CustomEvent("locate-selected-vessel", {
+                        detail: { lat: z.lat, lon: z.lon, zoom: z.zoom || 10 }
+                      }));
+                    }
+                  })
+                  .catch((err) => console.error("Case zone jump error:", err));
+              }}
+              style={{
+              background: "#1a1208",
+              border: "1px solid #ffaa66",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{c.case_id}</b> — {c.priority}<br/>
+              {c.title}<br/>
+              Zone: {c.zone}<br/>
+              Status: {c.status}<br/>
+              Linked MMSI: {c.linked_mmsi || "None"}<br/>
+              <span style={{ opacity: 0.75 }}>{c.notes}</span>
+            </div>
+          ))}
+
+          <h4 style={{ color: "#bbbbff", marginTop: "14px" }}>🗄 Persistent Event Log</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Stored events: {(dbEvents?.events || []).length}
+          </div>
+          {(dbEvents?.events || []).slice(0,5).map((e, i) => (
+            <div key={i} style={{
+              background: "#0b0b22",
+              border: "1px solid #8888ff",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{e.severity}</b> — {e.event_type}<br/>
+              Zone: {e.zone}<br/>
+              {e.message}<br/>
+              <span style={{ opacity: 0.65 }}>{e.timestamp}</span>
+            </div>
+          ))}
+
+          <h4 style={{ color: "#ff3333", marginTop: "14px" }}>🚨 Escalation Alerts</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Active escalations: {escalationAlerts?.total_alerts || 0}
+          </div>
+          {(escalationAlerts?.alerts || []).slice(0,5).map((a, i) => (
+            <div key={i} style={{
+              background: "#260606",
+              border: "1px solid #ff3333",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{a.severity}</b> — {a.type}<br/>
+              {a.message}<br/>
+              <span style={{ opacity: 0.65 }}>{a.timestamp}</span>
+            </div>
+          ))}
+
+          <h4 style={{ color: "#ffffff", marginTop: "14px" }}>📝 Operational Briefing</h4>
+          {briefing && (
+            <div style={{
+              background: "#111827",
+              border: "1px solid #ffffff",
+              padding: "8px",
+              marginBottom: "8px",
+              borderRadius: "8px",
+              fontSize: "12px"
+            }}>
+              <b>Threat Level: {briefing.threat_level}</b><br/>
+              <br/>
+              {briefing.summary}<br/>
+              <br/>
+              <b>Recommendation:</b><br/>
+              {briefing.recommendation}
+            </div>
+          )}
+
+          <h4 style={{ color: "#66ccff", marginTop: "14px" }}>🛰 Satellite/AIS Mismatch</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Mismatches: {satMismatch?.total_mismatches || 0}
+          </div>
+          {(satMismatch?.mismatches || []).slice(0,5).map((m, i) => (
+            <div key={i} style={{
+              background: "#06131f",
+              border: "1px solid #66ccff",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{m.severity}</b> — {m.zone}<br/>
+              Satellite visible: {m.satellite_visible}<br/>
+              AIS contacts: {m.ais_contacts}<br/>
+              {m.assessment}<br/>
+              <span style={{ opacity: 0.75 }}>{m.recommendation}</span><br/>
+
+              <button
+                onClick={() => {
+                  fetch("http://127.0.0.1:5000/api/cases/create-suva-mismatch?token=gods_eye_pacific_admin_2026")
+                    .then((res) => res.json())
+                    .then(() => {
+                      return fetch("http://127.0.0.1:5000/api/cases?token=gods_eye_pacific_admin_2026");
+                    })
+                    .then((res) => res.json())
+                    .then((data) => setCases(data))
+                    .catch((err) => console.error("Create case error:", err));
+                }}
+                style={{
+                  marginTop: "6px",
+                  width: "100%",
+                  padding: "6px",
+                  borderRadius: "6px",
+                  border: "1px solid #66ccff",
+                  background: "#0b2233",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: "11px"
+                }}
+              >
+                Create Investigation Case
+              </button>
+            </div>
+          ))}
+
+          <h4 style={{ color: "#ffaa00", marginTop: "14px" }}>🧠 Fusion Intelligence</h4>
+          {fusionIntel && (
+            <div style={{
+              background: "#1f1400",
+              border: fusionIntel.regional_threat_level === "LOW" ? "1px solid #00ffaa" : "1px solid #ffaa00",
+              padding: "8px",
+              marginBottom: "8px",
+              borderRadius: "8px",
+              fontSize: "12px"
+            }}>
+              <b>Regional Threat Level: {fusionIntel.regional_threat_level}</b><br/>
+              Fusion Score: {fusionIntel.fusion_score}<br/>
+              Maritime High Risk: {fusionIntel.maritime_high_risk}<br/>
+              Dark Activity: {fusionIntel.dark_activity}<br/>
+              Repeat Offenders: {fusionIntel.repeat_offenders}<br/>
+              Cyber Events: {fusionIntel.cyber_events}<br/>
+              <br/>
+              {fusionIntel.recommendation}
+            </div>
+          )}
+
+          <h4 style={{ color: "#00ffcc", marginTop: "14px" }}>🛡 Cyber Threat Intelligence</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Cyber events: {cyberThreats?.total || 0}
+          </div>
+          {(cyberThreats?.events || []).slice(0,5).map((c, i) => (
+            <div key={i} style={{
+              background: "#061c1a",
+              border: c.severity === "HIGH" ? "1px solid #ff4444" : "1px solid #00ffcc",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{c.severity}</b> — {c.type}<br/>
+              Target: {c.target}<br/>
+              Region: {c.region}<br/>
+              Source: {c.source}<br/>
+              {c.summary}
+            </div>
+          ))}
+
+          <h4 style={{ color: "#66ccff", marginTop: "14px" }}>📡 Feed Coverage</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Total tracked vessels: {feedCoverage?.total_vessels || 0}
+          </div>
+          {(feedCoverage?.coverage || []).map((z, i) => (
+            <div key={i} style={{
+              background: z.status === "ACTIVE" ? "#061b10" : z.status === "LOW COVERAGE" ? "#1f1800" : "#1f0606",
+              border: z.status === "ACTIVE" ? "1px solid #00ffaa" : z.status === "LOW COVERAGE" ? "1px solid #ffcc00" : "1px solid #ff4444",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{z.zone}</b><br/>
+              Contacts: {z.contacts} — {z.status}
+            </div>
+          ))}
+
+          <h4 style={{ color: "#00ffaa", marginTop: "14px" }}>📄 Operational Report</h4>
+          {operationalReport && (
+            <div style={{
+              background: "#061b14",
+              border: "1px solid #00ffaa",
+              padding: "8px",
+              marginBottom: "8px",
+              borderRadius: "8px",
+              fontSize: "12px"
+            }}>
+              <b>Threat Posture Summary</b><br/>
+              Vessels: {operationalReport.summary?.tracked_vessels ?? 0}<br/>
+              High Risk: {operationalReport.summary?.high_risk_vessels ?? 0}<br/>
+              Dark Activity: {operationalReport.summary?.dark_activity ?? 0}<br/>
+              Clusters: {operationalReport.summary?.clusters ?? 0}<br/>
+              Repeat Offenders: {operationalReport.summary?.repeat_offenders ?? 0}<br/>
+              <br/>
+              <b>Assessment:</b><br/>
+              {operationalReport.assessment || "No assessment available."}
+            </div>
+          )}
+
+          <h4 style={{ color: "#ff8844", marginTop: "14px" }}>🧬 Cluster Intelligence</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Active clusters: {clusterIntel?.total_clusters || 0}
+          </div>
+          {(clusterIntel?.clusters || []).slice(0,5).map((c, i) => (
+            <div key={i} style={{
+              background: "#1f1006",
+              border: "1px solid #ff8844",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{c.severity}</b> — Cluster Score {c.cluster_score}<br/>
+              Vessels: {c.vessel_count}<br/>
+              MMSIs: {formatFlags((c.vessels || []).slice(0,4))}<br/>
+              Indicators: {formatFlags(c.indicators)}
+            </div>
+          ))}
+
+          <h4 style={{ color: "#8888ff", marginTop: "14px" }}>🌑 Dark Activity Monitor</h4>
+          <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
+            Dark events: {darkActivity?.total_dark_activity || 0}
+          </div>
+          {(darkActivity?.dark_activity || []).slice(0,5).map((d, i) => (
+            <div key={i} style={{
+              background: "#080822",
+              border: "1px solid #8888ff",
+              padding: "6px",
+              marginBottom: "4px",
+              borderRadius: "6px",
+              fontSize: "12px"
+            }}>
+              <b>{d.severity}</b> — {d.name || d.mmsi}<br/>
+              Score: {d.dark_score ?? 0}<br/>
+              AIS gap: {d.age_minutes} min<br/>
+              Zone: {d.zone || "Unknown"}<br/>
+              Flags: {formatFlags(d.flags)}
             </div>
           ))}
 
@@ -1158,7 +1866,7 @@ Opacity: {opacity.toFixed(2)}
                   color: "#ff5c5c",
                   padding: "4px 8px",
                   borderRadius: "999px",
-                  fontSize: "12px",
+                  fontSize: "11px",
                   fontWeight: "bold",
                 }}
               >
@@ -1185,15 +1893,127 @@ Opacity: {opacity.toFixed(2)}
             <MiniStat label="Heading" value={Number.isNaN(Number(selected.heading)) ? "N/A" : selected.heading} />
             <MiniStat label="Last Seen" value={selected.lastSeen || "N/A"} />
             <MiniStat label="Confidence" value={selected.confidence ?? 0} />
-            <MiniStat label="Risk Level" value={selected.risk_level || "Unknown"} />
+            <MiniStat label="Risk Level" value={selected.threat_level || selected.risk_level || selected.risk_level || "Unknown"} />
+            <MiniStat label="Offender Status" value={selected.memory?.offender_status || "NEW"} />
+            <MiniStat label="Repeat Offender Score" value={selected.memory?.repeat_offender_score ?? 0} />
+            <MiniStat label="Loitering History" value={selected.memory?.loitering_count ?? 0} />
+            <MiniStat label="Dark Activity History" value={selected.memory?.dark_activity_count ?? 0} />
+            <MiniStat label="Rendezvous History" value={selected.memory?.rendezvous_count ?? 0} />
             <MiniStat label="Latitude" value={selected.lat} />
             <MiniStat label="Longitude" value={selected.lon} />
             <MiniStat label="Correlation Score" value={selected.correlation_score ?? 0} />
-            <MiniStat label="Risk Flags" value={formatFlags(selected.risk_flags)} />
+            <MiniStat label="Risk Flags" value={formatFlags(selected.threat_level || selected.risk_level || selected.risk_flags)} />
             <MiniStat label="Anomaly Flags" value={formatFlags(selected.anomaly_flags)} />
             <MiniStat label="Behavior Flags" value={formatFlags(selected.behavior_flags)} />
             <MiniStat label="Last Seen Age" value={`${selected.last_seen_age_hours ?? "N/A"} hrs`} />
             <MiniStat label="Assessment" value={selected.assessment || "No assessment yet"} />
+
+            <hr style={{ borderColor: "#222", margin: "16px 0" }} />
+
+            <h4 style={{ color: "#ffaa66", marginBottom: "10px" }}>
+              🧾 Vessel Intelligence Profile
+            </h4>
+
+            {vesselProfile && (
+              <div style={{
+                background: "#1a1208",
+                border: "1px solid #ffaa66",
+                borderRadius: "8px",
+                padding: "8px",
+                marginBottom: "8px",
+                fontSize: "12px"
+              }}>
+                <b>MMSI:</b> {vesselProfile.mmsi}<br/>
+                Linked Cases: {vesselProfile.risk_summary?.linked_case_count ?? 0}<br/>
+                Timeline Events: {vesselProfile.risk_summary?.timeline_events ?? 0}<br/>
+
+                {(vesselProfile.linked_cases || []).slice(0,3).map((c, i) => (
+                  <div key={i} style={{
+                    marginTop: "6px",
+                    padding: "6px",
+                    background: "#2a1908",
+                    borderRadius: "6px"
+                  }}>
+                    <b>{c.case_id}</b> — {c.priority}<br/>
+                    {c.title}<br/>
+                    Status: {c.status}<br/>
+                    Zone: {c.zone}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <h4 style={{ color: "#ff66cc", marginBottom: "10px" }}>
+              🕸 Vessel Network Intelligence
+            </h4>
+
+            <MiniStat label="Known Zones" value={formatFlags(networkData.zones)} />
+            <MiniStat label="Network Links" value={(networkData.connections || []).length} />
+
+            {(networkData.connections || []).slice(0,5).map((c, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "#180718",
+                  border: "1px solid #442244",
+                  borderRadius: "8px",
+                  padding: "8px",
+                  marginBottom: "6px",
+                  fontSize: "11px"
+                }}
+              >
+                <div style={{ color: "#ff66cc", fontWeight: "bold" }}>
+                  Linked Vessel: {c.target}
+                </div>
+                <div>Score: {c.score}</div>
+                <div>Relationship: {formatFlags(c.types)}</div>
+                <div style={{ opacity: 0.55, fontSize: "10px" }}>
+                  Last Seen: {c.last_seen}
+                </div>
+              </div>
+            ))}
+
+            {(networkData.connections || []).length === 0 && (
+              <div style={{ fontSize: "12px", opacity: 0.7, marginBottom: "10px" }}>
+                No vessel network links yet.
+              </div>
+            )}
+
+            <h4 style={{ color: "#00ffaa", marginBottom: "10px" }}>
+              🕒 Vessel Timeline
+            </h4>
+
+            {timelineData.length === 0 && (
+              <div style={{ fontSize: "12px", opacity: 0.7 }}>
+                No timeline events yet.
+              </div>
+            )}
+
+            {timelineData.slice().reverse().slice(0,10).map((e, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "#071018",
+                  border: "1px solid #123444",
+                  borderRadius: "8px",
+                  padding: "8px",
+                  marginBottom: "6px",
+                  fontSize: "11px"
+                }}
+              >
+                <div style={{ color: "#00ffaa", fontWeight: "bold" }}>
+                  {e.event_type}
+                </div>
+
+                <div style={{ opacity: 0.9 }}>
+                  {e.details}
+                </div>
+
+                <div style={{ opacity: 0.5, fontSize: "10px" }}>
+                  {e.timestamp}
+                </div>
+              </div>
+            ))}
 
             {isOnLand(selected.lat, selected.lon) && Number(selected.speed) > 1 && (
               <p style={{ color: "orange", fontWeight: "bold" }}>
