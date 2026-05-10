@@ -7,10 +7,13 @@ import websocket
 AISSTREAM_API_KEY = os.getenv("AISSTREAM_API_KEY")
 BACKEND_URL = "http://127.0.0.1:5000/api/vessels"
 
-# Fiji + wider Pacific AIS coverage boxes
+# Fiji / nearby Pacific bounding boxes
 BOUNDING_BOXES = [
-    [[-24.5, 170.0], [-12.0, 180.0]],   # Fiji / Vanuatu / west of dateline
-    [[-24.5, -180.0], [-12.0, -165.0]], # Tonga / Samoa / east of dateline
+    [[-18.5, 177.0], [-17.0, 178.8]],   # Western Viti Levu / Lautoka / Nadi
+    [[-18.6, 178.0], [-17.5, 179.5]],   # Suva / Eastern Viti Levu
+    [[-17.0, 178.0], [-15.5, 180.0]],   # Vanua Levu
+    [[-19.6, 177.0], [-18.5, 179.4]],   # Kadavu / South
+    [[-21.0, -179.9], [-15.0, -175.0]], # Lau / Eastern Fiji
 ]
 
 def post_vessel(v):

@@ -1,0 +1,58 @@
+from collections import defaultdict
+from datetime import datetime
+
+TIMELINE_MEMORY = defaultdict(list)
+
+def add_timeline_event(vessel, event_type, details):
+    mmsi = str(vessel.get("mmsi") or vessel.get("id") or "UNKNOWN")
+
+    event = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "event_type": event_type,
+        "details": details
+    }
+
+    TIMELINE_MEMORY[mmsi].append(event)
+
+    # keep last 100 events only
+    TIMELINE_MEMORY[mmsi] = TIMELINE_MEMORY[mmsi][-100:]
+
+def process_timeline(vessel):
+    flags = vessel.get("risk_flags", [])
+
+    if not isinstance(flags, list):
+        flags = [str(flags)]
+
+    for flag in flags:
+        fl = str(flag).lower()
+
+        if "loiter" in fl:
+            add_timeline_event(
+                vessel,
+                "LOITERING",
+                flag
+            )
+
+        if "watch zone" in fl:
+            add_timeline_event(
+                vessel,
+                "WATCH_ZONE_ENTRY",
+                flag
+            )
+
+        if "rendezvous" in fl:
+            add_timeline_event(
+                vessel,
+                "RENDEZVOUS",
+                flag
+            )
+
+        if "dark" in fl or "ais blackout" in fl:
+            add_timeline_event(
+                vessel,
+                "DARK_ACTIVITY",
+                flag
+            )
+
+def get_timeline(mmsi):
+    return TIMELINE_MEMORY.get(str(mmsi), [])

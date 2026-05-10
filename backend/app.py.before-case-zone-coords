@@ -21,8 +21,6 @@ from corridor_engine import process_corridor_activity, get_corridor_summary
 from heatmap_engine import process_heatmap, get_heatmap
 from timeline_engine import process_timeline, get_timeline
 from case_engine import init_case_db, create_case, get_cases
-from zone_coordinates import get_zone_coordinates
-from vessel_profile_engine import build_vessel_profile
 from network_engine import register_zone, register_event, get_network
 from cluster_engine import detect_clusters
 from report_engine import generate_operational_report
@@ -895,36 +893,6 @@ init_db()
 # ===== INVESTIGATION CASE MANAGEMENT =====
 init_case_db()
 
-
-
-@app.route("/api/vessel-profile", methods=["GET"])
-@require_admin
-def vessel_profile():
-    mmsi = request.args.get("mmsi", "")
-
-    if not mmsi:
-        return jsonify({
-            "error": "mmsi required"
-        }), 400
-
-    return jsonify(
-        build_vessel_profile(mmsi)
-    )
-
-@app.route("/api/cases/zone", methods=["GET"])
-@require_admin
-def case_zone():
-    zone = request.args.get("zone", "")
-
-    coords = get_zone_coordinates(zone)
-
-    if not coords:
-        return jsonify({
-            "error": "Unknown zone"
-        }), 404
-
-    return jsonify(coords)
-
 @app.route("/api/cases", methods=["GET"])
 @require_admin
 def cases():
@@ -933,38 +901,6 @@ def cases():
     })
 
 
-
-
-@app.route("/api/cases/link-vessel", methods=["GET"])
-@require_admin
-def cases_link_vessel():
-    import sqlite3
-
-    case_id = request.args.get("case_id", "")
-    mmsi = request.args.get("mmsi", "")
-
-    if not case_id or not mmsi:
-        return jsonify({
-            "error": "case_id and mmsi required"
-        }), 400
-
-    conn = sqlite3.connect("godseye_intel.db")
-    cur = conn.cursor()
-
-    cur.execute("""
-    UPDATE investigation_cases
-    SET linked_mmsi = ?
-    WHERE case_id = ?
-    """, (mmsi, case_id))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({
-        "status": "linked",
-        "case_id": case_id,
-        "mmsi": mmsi
-    })
 
 @app.route("/api/cases/create-suva-mismatch", methods=["GET"])
 @require_admin

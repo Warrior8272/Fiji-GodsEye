@@ -1,0 +1,1053 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+  Polyline,
+  Rectangle,
+  useMap,
+} from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+
+const coverageZones = [
+  { name: "Western Fiji / Lautoka / Nadi", bounds: [[-18.8, 176.6], [-16.9, 178.0]], color: "green" },
+  { name: "Central / Suva Watch Zone", bounds: [[-18.5, 177.3], [-17.4, 178.8]], color: "orange" },
+  { name: "Vanua Levu Watch Zone", bounds: [[-17.0, 178.0], [-15.5, 180.0]], color: "orange" },
+  { name: "Kadavu Southern Watch Zone", bounds: [[-19.6, 177.0], [-18.5, 179.4]], color: "orange" },
+];
+
+const portZones = [
+  { name: "Lautoka", bounds: [[-17.66, 177.40], [-17.56, 177.50]] },
+  { name: "Suva", bounds: [[-18.18, 178.38], [-18.04, 178.55]] },
+  { name: "Levuka", bounds: [[-17.73, 178.78], [-17.64, 178.88]] },
+  { name: "Labasa / Vanua Levu", bounds: [[-16.48, 179.25], [-16.28, 179.48]] },
+];
+
+function MapOverlays() {
+  return (
+    <>
+      {coverageZones.map((z) => (
+        <Rectangle
+          key={z.name}
+          bounds={z.bounds}
+          pathOptions={{ color: z.color, weight: 2, fillOpacity: 0.08 }}
+        />
+      ))}
+
+      {portZones.map((p) => (
+        <Rectangle
+          key={p.name}
+          bounds={p.bounds}
+          pathOptions={{ color: "red", weight: 2, dashArray: "6 6", fillOpacity: 0.03 }}
+        />
+      ))}
+    </>
+  );
+}
+
+function MapLegend() {
+  return (
+    <div style={{
+      position: "absolute",
+      bottom: 18,
+      left: 18,
+      zIndex: 1000,
+      background: "rgba(10,15,25,0.9)",
+      color: "white",
+      padding: "10px 12px",
+      borderRadius: "10px",
+      fontSize: "12px",
+      lineHeight: "1.6",
+      border: "1px solid #334155"
+    }}>
+      <div><b>Map Legend</b></div>
+      <div>🟢 Vessel / low risk</div>
+      <div>🟠 Medium risk / watch zone</div>
+      <div>🔴 Dashed box = port monitoring</div>
+      <div style={{ marginTop: 6, opacity: 0.8 }}>Source: AIS + Fiji-Pacific zones</div>
+    </div>
+  );
+}
+
+function LastUpdatedLabel() {
+  return (
+    <div style={{
+      position: "absolute",
+      top: 12,
+      right: 330,
+      zIndex: 1000,
+      background: "rgba(10,15,25,0.85)",
+      color: "white",
+      padding: "8px 10px",
+      borderRadius: "8px",
+      fontSize: "12px",
+      border: "1px solid #334155"
+    }}>
+      Last updated: {new Date().toLocaleTimeString()}
+    </div>
+  );
+}
+
+
+function FitToData({ vessels, alerts, shouldFit }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!shouldFit) return;
+
+    const vesselPoints = (vessels || [])
+      .map((v) => [Number(v.lat), Number(v.lon)])
+      .filter(([lat, lon]) => !Number.isNaN(lat) && !Number.isNaN(lon));
+
+    const alertPoints = (alerts || [])
+      .map((a) => [Number(a.lat), Number(a.lon)])
+      .filter(([lat, lon]) => !Number.isNaN(lat) && !Number.isNaN(lon));
+
+    const allPoints = [...vesselPoints, ...alertPoints];
+
+    if (allPoints.length === 1) {
+      map.setView(allPoints[0], 9);
+      return;
+    }
+
+    if (allPoints.length > 1) {
+      map.fitBounds(allPoints, { padding: [40, 40] });
+    }
+  }, [vessels, alerts, shouldFit, map]);
+
+  return null;
+}
+
+function FollowSelected({ selected, selectedType, followMode }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!followMode) return;
+    if (!selected) return;
+    if (selectedType !== "vessel") return;
+
+    const lat = Number(selected.lat);
+    const lon = Number(selected.lon);
+
+    if (Number.isNaN(lat) || Number.isNaN(lon)) return;
+
+    map.panTo([lat, lon], { animate: true, duration: 0.8 });
+  }, [selected, selectedType, followMode, map]);
+
+  return null;
+}
+
+function LocateSelectedVessel() {
+  const map = useMap();
+
+  useEffect(() => {
+    const handler = (event) => {
+      const lat = Number(event.detail?.lat);
+      const lon = Number(event.detail?.lon);
+
+      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+        map.setView([lat, lon], Math.max(map.getZoom(), 10), {
+          animate: true,
+        });
+      }
+    };
+
+    window.addEventListener("locate-selected-vessel", handler);
+    return () => window.removeEventListener("locate-selected-vessel", handler);
+  }, [map]);
+
+  return null;
+}
+
+function isOnLand(lat, lon) {
+  const nLat = Number(lat);
+  const nLon = Number(lon);
+
+  if (Number.isNaN(nLat) || Number.isNaN(nLon)) return false;
+
+  return (
+    nLat > -18.2 &&
+    nLat < -17.5 &&
+    nLon > 177.3 &&
+    nLon < 178.2
+  );
+}
+
+function projectPoint(lat, lon, courseDeg, distanceKm = 3) {
+  const R = 6371;
+  const bearing = (courseDeg * Math.PI) / 180;
+
+  const lat1 = (lat * Math.PI) / 180;
+  const lon1 = (lon * Math.PI) / 180;
+  const angularDistance = distanceKm / R;
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) +
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
+  );
+
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+  return [(lat2 * 180) / Math.PI, (lon2 * 180) / Math.PI];
+}
+
+function formatFlags(flags) {
+  if (!flags || flags.length === 0) return "None";
+  return flags.join(", ");
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div style={{ marginBottom: "8px" }}>
+      <strong>{label}:</strong> {value}
+    </div>
+  );
+}
+
+export default function App() {
+  const [selectedVessel, setSelectedVessel] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [selectedType, setSelectedType] = useState(null);
+
+  const [vessels, setVessels] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+
+  const [route, setRoute] = useState([]);
+  const [prediction, setPrediction] = useState([]);
+  const [shouldFit, setShouldFit] = useState(true);
+
+  const [historyRange, setHistoryRange] = useState("1");
+  const [followMode, setFollowMode] = useState(false);
+
+  const [loadingVessels, setLoadingVessels] = useState(true);
+  const [loadingAlerts, setLoadingAlerts] = useState(true);
+
+  const [vesselError, setVesselError] = useState("");
+  const [alertError, setAlertError] = useState("");
+
+  const [showVessels, setShowVessels] = useState(true);
+  const [showAlerts, setShowAlerts] = useState(true);
+const [showSentinel, setShowSentinel] = useState(true);
+const [opacity, setOpacity] = useState(0.6);
+  const [highRiskOnly, setHighRiskOnly] = useState(false);
+
+
+  const generateReport = () => {
+    const elevatedVessels = vessels
+      .filter((v) => String(v.risk_level || "").toLowerCase() !== "low")
+      .slice(0, 20)
+      .map((v) => ({
+        id: v.id,
+        mmsi: v.mmsi || "unknown",
+        name: v.name || "unknown",
+        lat: v.lat,
+        lon: v.lon,
+        speed: v.speed,
+        course: v.course,
+        risk_level: v.risk_level || "unknown",
+        flags: v.anomaly_flags || v.flags || [],
+
+        
+        zone: (() => {
+          const lat = v.lat;
+          const lon = v.lon;
+
+          if (lat > -20 && lat < -15 && lon > 175 && lon < 180) return "Fiji EEZ";
+          if (lat > -23 && lat < -15 && lon > -175 && lon < -173) return "Tonga";
+          if (lat > -20 && lat < -10 && lon > 165 && lon < 170) return "Vanuatu";
+          if (lat > -15 && lat < -13 && lon > -173 && lon < -171) return "Samoa";
+          if (lat > -10 && lat < -5 && lon > 175 && lon < 180) return "Tuvalu";
+          if (lat > -12 && lat < -5 && lon > 155 && lon < 165) return "Solomon Islands";
+          if (lat > -10 && lat < 0 && lon > 140 && lon < 155) return "Papua New Guinea";
+          if (lat > -5 && lat < 5 && lon > 170 && lon < -150) return "Kiribati";
+          if (lat > -10 && lat < -7 && lon > -172 && lon < -170) return "Tokelau";
+          if (lat > 0 && lat < 10 && lon > 140 && lon < 160) return "Micronesia";
+          if (lat > -13 && lat < -12 && lon > 177 && lon < 179) return "Rotuma";
+
+          return "Open Ocean";
+        })(),
+
+        
+        recommendation:
+          (v.speed || 0) < 1
+            ? "Monitor closely. Vessel is moving very slowly or stationary inside a monitored zone."
+            : (v.speed || 0) < 2
+            ? "Investigate pattern. Low-speed movement may indicate drifting, waiting, or unusual behaviour."
+            : "Routine monitoring. No immediate action required based on speed behaviour."
+,
+
+        threat:
+          (v.speed || 0) < 1
+            ? "Port Loitering"
+            : (v.speed || 0) < 2
+            ? "Suspicious Drift"
+            : "Normal Transit"
+      }));
+
+    const activeAlerts = alerts.slice(0, 20).map((a) => {
+      let severity = "low";
+
+      // Basic intelligence scoring
+      if (a.type === "LOITERING") {
+        severity = "high";
+      } else if ((a.speed || 0) < 2) {
+        severity = "medium";
+      } else {
+        severity = "low";
+      }
+
+      return {
+        id: a.id,
+        name: a.name || "Alert",
+        severity,
+        message: a.message || ""
+      };
+    });
+
+    const analysis =
+      elevatedVessels.length > 0 || activeAlerts.length > 0
+        ? `${elevatedVessels.length} elevated vessel(s) and ${activeAlerts.length} active alert(s) require monitoring.`
+        : "No elevated maritime threats detected at the time of report generation.";
+
+    const report = {
+      system: "GODS EYE - Operational Maritime Intelligence Report v1",
+      region: "Fiji-Pacific EEZ",
+      timestamp: new Date().toISOString(),
+      summary: {
+        total_vessels: vessels.length,
+        total_alerts: alerts.length,
+        elevated_vessels: elevatedVessels.length,
+        satellite_enabled: showSentinel
+      },
+      analysis,
+      vessels: elevatedVessels,
+      alerts: activeAlerts
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gods_eye_operational_intel_report_v1.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
+
+  useEffect(() => {
+    const loadVessels = () => {
+      fetch("http://127.0.0.1:5000/api/vessels")
+        .then((res) => {
+          if (!res.ok) throw new Error(`Vessels HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          const parsed = Array.isArray(data) ? data : [];
+          setVessels(parsed);
+          setVesselError("");
+
+          if (selected && selectedType === "vessel") {
+            const updated = parsed.find((v) => v.id === selected.id);
+            if (updated) {
+              setSelected(updated);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("Vessels fetch error:", err);
+          setVesselError(String(err));
+          setVessels([]);
+        })
+        .finally(() => setLoadingVessels(false));
+    };
+
+    loadVessels();
+    const interval = setInterval(loadVessels, 5000);
+    return () => clearInterval(interval);
+  }, [selected, selectedType]);
+
+  useEffect(() => {
+    const loadAlerts = () => {
+      fetch("http://127.0.0.1:5000/api/alerts")
+        .then((res) => {
+          if (!res.ok) throw new Error(`Alerts HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setAlerts(Array.isArray(data) ? data : []);
+          setAlertError("");
+        })
+        .catch((err) => {
+          console.error("Alerts fetch error:", err);
+          setAlertError(String(err));
+          setAlerts([]);
+        })
+        .finally(() => setLoadingAlerts(false));
+    };
+
+    loadAlerts();
+    const interval = setInterval(loadAlerts, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShouldFit(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const fetchRoute = async (id, vessel = null, rangeHours = historyRange) => {
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:5000/api/vessels/${id}/history?limit=150&range_hours=${rangeHours}`
+      );
+      const data = await res.json();
+
+      const points = (Array.isArray(data) ? data : [])
+        .map((p) => ({
+          lat: Number(p.lat),
+          lon: Number(p.lon),
+          course: Number(p.course),
+        }))
+        .filter((p) => !Number.isNaN(p.lat) && !Number.isNaN(p.lon));
+
+      setRoute(points.map((p) => [p.lat, p.lon]));
+
+      const recentCourses = points
+        .slice(-3)
+        .map((p) => p.course)
+        .filter((c) => !Number.isNaN(c));
+
+      let avgCourse = vessel ? Number(vessel.course) : NaN;
+      if (recentCourses.length > 0) {
+        avgCourse = recentCourses.reduce((sum, c) => sum + c, 0) / recentCourses.length;
+      }
+
+      const baseLat =
+        points.length > 0 ? points[points.length - 1].lat : Number(vessel?.lat);
+      const baseLon =
+        points.length > 0 ? points[points.length - 1].lon : Number(vessel?.lon);
+      const baseSpeed = Number(vessel?.speed);
+
+      if (
+        Number.isNaN(baseLat) ||
+        Number.isNaN(baseLon) ||
+        Number.isNaN(avgCourse) ||
+        Number.isNaN(baseSpeed) ||
+        baseSpeed < 1
+      ) {
+        setPrediction([]);
+        return;
+      }
+
+      const distanceKm = (baseSpeed * 1.852) * (5 / 60);
+      const predicted = projectPoint(baseLat, baseLon, avgCourse, distanceKm);
+
+      if (isOnLand(predicted[0], predicted[1])) {
+        setPrediction([]);
+        return;
+      }
+
+      setPrediction([
+        [baseLat, baseLon],
+        predicted,
+      ]);
+    } catch (err) {
+      console.error("Route fetch failed:", err);
+      setRoute([]);
+      setPrediction([]);
+    }
+  };
+
+  useEffect(() => {
+    if (selected && selectedType === "vessel") {
+      fetchRoute(selected.id, selected, historyRange);
+    }
+  }, [historyRange]);
+
+  useEffect(() => {
+    if (followMode && selected && selectedType === "vessel") {
+      fetchRoute(selected.id, selected, historyRange);
+    }
+  }, [selected, followMode]);
+
+  const getRiskColor = (risk) => {
+    if (risk === "Critical") return "purple";
+    if (risk === "High") return "red";
+    if (risk === "Elevated") return "orange";
+    return "green";
+  };
+
+  const getAlertColor = (severity) => {
+    const value = String(severity || "").toLowerCase();
+    if (value === "high") return "red";
+    if (value === "medium") return "orange";
+    if (value === "low") return "yellow";
+    return "deepskyblue";
+  };
+
+  const visibleVessels = useMemo(() => {
+    let data = vessels
+      .map((v) => ({
+        ...v,
+        lat: Number(v.lat),
+        lon: Number(v.lon),
+        speed: Number(v.speed) || 0,
+        course: Number(v.course),
+        heading: Number(v.heading),
+        confidence: Number(v.confidence) || 0,
+        correlation_score: Number(v.correlation_score) || 0,
+      }))
+      .filter((v) => !Number.isNaN(v.lat) && !Number.isNaN(v.lon));
+
+    if (highRiskOnly) {
+      data = data.filter((v) => ["High", "Critical"].includes(v.risk_level));
+    }
+
+    return data.slice(0, 100);
+  }, [vessels, highRiskOnly]);
+
+  const visibleAlerts = useMemo(() => {
+    let data = alerts
+      .map((a) => ({
+        ...a,
+        lat: Number(a.lat),
+        lon: Number(a.lon),
+      }))
+      .filter((a) => !Number.isNaN(a.lat) && !Number.isNaN(a.lon));
+
+    if (highRiskOnly) {
+      data = data.filter((a) => String(a.severity || "").toLowerCase() === "high");
+    }
+
+    return data.slice(0, 100);
+  }, [alerts, highRiskOnly]);
+
+  const totalVisible =
+    (showVessels ? visibleVessels.length : 0) +
+    (showAlerts ? visibleAlerts.length : 0);
+
+  const topThreats = [...visibleVessels]
+    .filter((v) => ["High", "Critical"].includes(v.risk_level))
+    .sort((a, b) => {
+      const aScore = (a.anomaly_score || 0) + (a.correlation_score || 0);
+      const bScore = (b.anomaly_score || 0) + (b.correlation_score || 0);
+      return bScore - aScore;
+    })
+    .slice(0, 5);
+
+  return (
+    <div style={{ display: "flex", height: "100vh", width: "100vw", width: "100%", background: "#0b1020" }}>
+      <div style={{ flex: 3, position: "relative" }}>
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1000,
+            top: 12,
+            left: 12,
+            background: "rgba(10,10,10,0.88)",
+            color: "#fff",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            minWidth: "230px",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+            fontSize: "14px",
+          }}
+        >
+          <div style={{ fontWeight: "bold", marginBottom: "10px" }}>Phase 11 Controls</div>
+
+          <label style={{ display: "block", marginBottom: "8px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showVessels}
+              onChange={() => setShowVessels((prev) => !prev)}
+              style={{ marginRight: "8px" }}
+            />
+            Show vessels
+          </label>
+
+          <label style={{ display: "block", marginBottom: "8px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showAlerts}
+              onChange={() => setShowAlerts((prev) => !prev)}
+              style={{ marginRight: "8px" }}
+            />
+            Show alerts
+          </label>
+
+          <label style={{ display: "block", marginBottom: "8px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={highRiskOnly}
+              onChange={() => setHighRiskOnly((prev) => !prev)}
+              style={{ marginRight: "8px" }}
+            />
+            High risk only
+          </label>
+
+          <label style={{ display: "block", marginBottom: "10px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={followMode}
+              onChange={() => setFollowMode((prev) => !prev)}
+              style={{ marginRight: "8px" }}
+            />
+            Follow selected vessel
+          </label>
+
+          <div style={{ marginBottom: "10px" }}>
+            <div style={{ marginBottom: "4px" }}>History range</div>
+            <select
+              value={historyRange}
+              onChange={(e) => setHistoryRange(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "6px 8px",
+                borderRadius: "6px",
+                border: "1px solid #333",
+                background: "#111",
+                color: "#fff",
+              }}
+            >
+              <option value="1">Last 1 hour</option>
+              <option value="6">Last 6 hours</option>
+              <option value="24">Last 24 hours</option>
+              <option value="48">Last 48 hours</option>
+            </select>
+          </div>
+
+          <button
+            onClick={() => {
+              if (selected && selectedType === "vessel") {
+                window.dispatchEvent(
+                  new CustomEvent("locate-selected-vessel", {
+                    detail: {
+                      lat: Number(selected.lat),
+                      lon: Number(selected.lon),
+                    },
+                  })
+                );
+              }
+            }}
+            style={{
+              width: "100%",
+              marginBottom: "10px",
+              padding: "8px",
+              borderRadius: "6px",
+              border: "1px solid #333",
+              background: "#111",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Locate selected vessel
+          </button>
+
+          <div style={{ opacity: 0.9 }}>Visible items: {totalVisible}</div>
+        </div>
+
+        <MapContainer
+          center={[-18.2, 177.2]}
+          zoom={7}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {showSentinel && (
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            opacity={0.95}
+          />
+        )}
+
+          <MapOverlays />
+        <MapLegend />
+        <LastUpdatedLabel />
+
+        <FitToData
+            vessels={showVessels ? visibleVessels : []}
+            alerts={showAlerts ? visibleAlerts : []}
+            shouldFit={shouldFit}
+          />
+
+          <FollowSelected
+            selected={selected}
+            selectedType={selectedType}
+            followMode={followMode}
+          />
+
+          <LocateSelectedVessel />
+
+          {showVessels &&
+            visibleVessels.map((v) => {
+              const movingLandAnomaly =
+                isOnLand(v.lat, v.lon) && Number(v.speed) > 1;
+
+              return (
+                <CircleMarker eventHandlers={{ click: () => setSelectedVessel(v) }}
+                  key={`vessel-${v.id}`}
+                  center={[v.lat, v.lon]}
+                  radius={10}
+                  pathOptions={{
+                    color: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
+                    fillColor: movingLandAnomaly ? "purple" : getRiskColor(v.risk_level),
+                    fillOpacity: 0.85,
+                    weight: 3,
+                  }}
+                  eventHandlers={{
+                    click: () => {
+                      setSelected(v);
+                      setSelectedType("vessel");
+                      fetchRoute(v.id, v, historyRange);
+                    },
+                  }}
+                >
+                  <Popup>
+                    <strong>{v.name || "Unknown Vessel"}</strong>
+                    <br />
+                    Type: {v.type || "Unknown"}
+                    <br />
+                    Speed: {v.speed ?? "N/A"} kn
+                    <br />
+                    Course: {Number.isNaN(v.course) ? "N/A" : v.course}
+                    <br />
+                    Heading: {Number.isNaN(v.heading) ? "N/A" : v.heading}
+                    <br />
+                    Last Seen: {v.lastSeen || "N/A"}
+                    <br />
+                    Confidence: {v.confidence}
+                    <br />
+                    Risk Level: {v.risk_level}
+                    <br />
+                    Lat: {v.lat}
+                    <br />
+                    Lon: {v.lon}
+                    <br />
+                    Anomaly: {movingLandAnomaly ? "Yes" : "No"}
+                  </Popup>
+                </CircleMarker>
+              );
+            })}
+
+          {showAlerts &&
+            visibleAlerts.map((a) => (
+              <CircleMarker
+                key={`alert-${a.id}`}
+                center={[a.lat, a.lon]}
+                radius={8}
+                pathOptions={{
+                  color: getAlertColor(a.severity),
+                  fillColor: getAlertColor(a.severity),
+                  fillOpacity: 0.9,
+                  weight: 2,
+                }}
+                eventHandlers={{
+                  click: () => {
+                    setSelected(a);
+                    setSelectedType("alert");
+                    setRoute([]);
+                    setPrediction([]);
+                  },
+                }}
+              >
+                <Popup>
+                  <strong>{a.name || "Alert"}</strong>
+                  <br />
+                  Type: {a.type || "Unknown"}
+                  <br />
+                  Severity: {a.severity || "N/A"}
+                  <br />
+                  Lat: {a.lat}
+                  <br />
+                  Lon: {a.lon}
+                </Popup>
+              </CircleMarker>
+            ))}
+
+          {route.length > 1 && (
+            <Polyline positions={route} pathOptions={{ color: "blue", weight: 4 }} />
+          )}
+
+          {prediction.length > 1 && (
+            <Polyline
+              positions={prediction}
+              pathOptions={{ color: "cyan", weight: 3, dashArray: "6, 6" }}
+            />
+          )}
+        </MapContainer>
+      </div>
+
+      <div
+        style={{
+          flex: 1, width: "100%",
+          background: "#0a0a0a",
+          color: "#fff",
+          
+          overflowY: "auto",
+          borderLeft: "1px solid #222",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>🧠 Intelligence Panel</h2>
+
+        <div style={{ marginBottom: "16px", fontSize: "14px", opacity: 0.9 }}>
+          <div>Vessels: {loadingVessels ? "Loading..." : visibleVessels.length}</div>
+          <div>Alerts: {loadingAlerts ? "Loading..." : visibleAlerts.length}</div>
+        </div>
+
+        <hr style={{ borderColor: "#222", margin: "16px 0" }} />
+        <h3 style={{ marginTop: 0 }}>🔥 Top Threats</h3>
+
+<h4 style={{ color: "#ff4444", marginTop: "10px" }}>🚨 Active Alerts</h4>
+{alerts.length === 0 && (
+  <div style={{ fontSize: "12px", opacity: 0.7 }}>No alerts</div>
+)}
+{alerts.map((a, idx) => (
+  <div key={idx} style={{
+    background: "#2a0000",
+    padding: "6px",
+    marginBottom: "4px",
+    borderRadius: "6px",
+    fontSize: "12px"
+  }}>
+    <b>{a.type}</b><br/>
+    <div className={`threat-badge threat-${
+      (a.severity || (a.type === "LOITERING" ? "high" : "medium")).toLowerCase()
+    }`}>
+      {(a.severity || (a.type === "LOITERING" ? "high" : "medium")).toUpperCase()} RISK
+    </div>
+
+    
+
+    {a.msg}<br/>
+    {a.id}
+  </div>
+))}
+
+<div style={{marginTop:"16px",padding:"12px",background:"#111",borderRadius:"12px",border:"1px solid #222"}}>
+
+<h3>🛰️ 
+        {selectedVessel && (
+          <div className="selected-intel-card">
+            <h3>🎯 Selected Vessel</h3>
+            <p><b>Name:</b> {selectedVessel.name || selectedVessel.shipname || "Unknown"}</p>
+            <p><b>MMSI:</b> {selectedVessel.mmsi || selectedVessel.id || "Unknown"}</p>
+            <p><b>Speed:</b> {selectedVessel.speed || selectedVessel.sog || 0} kn</p>
+            <p><b>Heading:</b> {selectedVessel.heading || selectedVessel.cog || "Unknown"}</p>
+            <p><b>Risk:</b> {selectedVessel.risk || selectedVessel.risk_level || "LOW"}</p>
+            <p><b>Zone:</b> {selectedVessel.zone || selectedVessel.zone_name || "Unknown"}</p>
+          </div>
+        )}
+
+          Sentinel Satellite</h3>
+
+<label>
+
+<input type="checkbox" checked={showSentinel} onChange={()=>setShowSentinel(!showSentinel)} /> Enable Satellite
+
+</label>
+
+<div style={{marginTop:"10px"}}>
+
+Opacity: {opacity.toFixed(2)}
+
+<input type="range" min="0" max="1" step="0.05" value={opacity} onChange={(e)=>setOpacity(parseFloat(e.target.value))} />
+
+</div>
+
+</div>
+
+        {topThreats.length === 0 && (
+          <div style={{ opacity: 0.8 }}>No active threats detected.</div>
+        )}
+
+        <hr style={{ borderColor: "#222", margin: "16px 0" }} />
+        <h3 style={{ marginTop: 0 }}>🟡 Vessel Watchlist</h3>
+
+<div style={{
+  background: "#111827",
+  border: "1px solid #facc15",
+  borderRadius: "10px",
+  padding: "10px",
+  marginBottom: "12px"
+}}>
+  <h4 style={{ margin: "0 0 8px 0", color: "#facc15" }}>
+    ⚠️ Ranked Elevated Vessels
+  </h4>
+
+  {vessels
+    .filter(v => String(v.risk_level || "").toLowerCase() !== "low")
+    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+    .slice(0, 5)
+    .map((v, idx) => (
+      <div key={v.id || v.mmsi || idx} style={{
+        fontSize: "12px",
+        padding: "6px",
+        borderBottom: "1px solid #374151"
+      }}>
+        <b>#{idx + 1}</b> {v.mmsi || v.id || "Unknown"}<br />
+        Risk: <b>{v.risk_level || "Unknown"}</b><br />
+        Confidence: {v.confidence || 0}%<br />
+        Flags: {(v.anomaly_flags || v.flags || []).join(", ") || "None"}
+      </div>
+    ))}
+
+  {vessels.filter(v => String(v.risk_level || "").toLowerCase() !== "low").length === 0 && (
+    <div style={{ fontSize: "12px", color: "#9ca3af" }}>
+      No elevated vessels currently detected.
+    </div>
+  )}
+</div>
+
+
+<button
+  style={{
+    marginTop: "10px",
+    width: "100%",
+    padding: "8px",
+    background: "#1f6feb",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer"
+  }}
+
+  onClick={() => {
+  window.location.href = "http://127.0.0.1:5000/api/report/pdf";
+}}>
+  📄 Generate Report
+</button>
+
+
+        {visibleVessels
+          .filter((v) => String(v.risk_level || "").toLowerCase() !== "low")
+          .slice(0, 10)
+          .map((v) => (
+            <div
+              key={v.id}
+              onClick={() => {
+                setSelected(v);
+                setSelectedType("vessel");
+              }}
+              style={{
+                marginBottom: "12px",
+                padding: "12px",
+                background: "#0f172a",
+                border: "1px solid #facc15",
+                borderRadius: "12px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontWeight: "bold", fontSize: "15px" }}>
+                {v.name || "Unknown"}
+              </div>
+              <div>MMSI: {v.mmsi || v.id || "N/A"}</div>
+              <div>Risk: <b style={{ color: "#facc15" }}>{v.risk_level || "Medium"}</b></div>
+              <div>Speed: {v.speed ?? "N/A"} kn</div>
+              <div>Heading: {v.heading ?? v.course ?? "N/A"}°</div>
+              <div>Confidence: {v.confidence ?? "N/A"}</div>
+              <div style={{ marginTop: "8px", fontSize: "13px", opacity: 0.9 }}>
+                <b>Reasons:</b><br />
+                {(v.anomaly_flags || v.risk_flags || v.behavior_flags || ["inside Fiji-Pacific watch zone"])
+                  .join(", ")}
+              </div>
+            </div>
+          ))}
+
+        {topThreats.map((v) => (
+          <div
+            key={v.id}
+            style={{
+              marginBottom: "12px",
+              padding: "12px",
+              background: "#111",
+              borderRadius: "12px",
+              border: "1px solid #222",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <strong>{v.name || "Unknown"}</strong>
+              <span
+                style={{
+                  background: "#2b0b0b",
+                  color: "#ff5c5c",
+                  padding: "4px 8px",
+                  borderRadius: "999px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                }}
+              >
+                ● {String(v.risk_level || "").toUpperCase()}
+              </span>
+            </div>
+            <MiniStat label="Confidence" value={v.confidence} />
+            <MiniStat label="Last seen age" value={`${v.last_seen_age_hours ?? "N/A"} hrs`} />
+            <MiniStat label="Flags" value={formatFlags(v.anomaly_flags)} />
+          </div>
+        ))}
+
+        <hr style={{ borderColor: "#222", margin: "16px 0" }} />
+
+        {!selected && <div style={{ opacity: 0.9 }}>Select a vessel or alert on the map.</div>}
+
+        {selected && selectedType === "vessel" && (
+          <>
+            <h3>{selected.name || "Unknown"}</h3>
+            <MiniStat label="Category" value="Vessel" />
+            <MiniStat label="Type" value={selected.type || "Unknown"} />
+            <MiniStat label="Speed" value={`${selected.speed ?? "N/A"} kn`} />
+            <MiniStat label="Course" value={Number.isNaN(Number(selected.course)) ? "N/A" : selected.course} />
+            <MiniStat label="Heading" value={Number.isNaN(Number(selected.heading)) ? "N/A" : selected.heading} />
+            <MiniStat label="Last Seen" value={selected.lastSeen || "N/A"} />
+            <MiniStat label="Confidence" value={selected.confidence ?? 0} />
+            <MiniStat label="Risk Level" value={selected.risk_level || "Unknown"} />
+            <MiniStat label="Latitude" value={selected.lat} />
+            <MiniStat label="Longitude" value={selected.lon} />
+            <MiniStat label="Correlation Score" value={selected.correlation_score ?? 0} />
+            <MiniStat label="Risk Flags" value={formatFlags(selected.risk_flags)} />
+            <MiniStat label="Anomaly Flags" value={formatFlags(selected.anomaly_flags)} />
+            <MiniStat label="Behavior Flags" value={formatFlags(selected.behavior_flags)} />
+            <MiniStat label="Last Seen Age" value={`${selected.last_seen_age_hours ?? "N/A"} hrs`} />
+            <MiniStat label="Assessment" value={selected.assessment || "No assessment yet"} />
+
+            {isOnLand(selected.lat, selected.lon) && Number(selected.speed) > 1 && (
+              <p style={{ color: "orange", fontWeight: "bold" }}>
+                ⚠️ Position anomaly detected
+              </p>
+            )}
+
+            {selected.score_breakdown && (
+              <>
+                <hr style={{ borderColor: "#222", margin: "16px 0" }} />
+                <p><strong>Score Breakdown:</strong></p>
+                <MiniStat label="Base Confidence" value={selected.score_breakdown.base_confidence} />
+                <MiniStat label="Correlation" value={selected.score_breakdown.correlation} />
+                <MiniStat label="Anomaly" value={selected.score_breakdown.anomaly} />
+                <MiniStat label="Stale Tracking" value={selected.score_breakdown.stale_tracking} />
+                <MiniStat label="Type Weight" value={selected.score_breakdown.type_weight} />
+                <MiniStat label="Multiple Alert Bonus" value={selected.score_breakdown.multiple_alert_bonus} />
+              </>
+            )}
+          </>
+        )}
+
+        {selected && selectedType === "alert" && (
+          <>
+            <h3>{selected.name || "Alert"}</h3>
+            <MiniStat label="Category" value="Alert" />
+            <MiniStat label="Type" value={selected.type || "Unknown"} />
+            <MiniStat label="Severity" value={selected.severity || "N/A"} />
+            <MiniStat label="Latitude" value={selected.lat} />
+            <MiniStat label="Longitude" value={selected.lon} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

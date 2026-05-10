@@ -1,0 +1,256 @@
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow: hidden;
+  background: #05080d;
+  color: #d8f3ff;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app,
+.dashboard,
+.godseye-app {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  background: #05080d;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main tactical command layout */
+.main-layout,
+.map-layout,
+.content,
+.map-shell {
+  flex: 1 1 auto !important;
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 0;
+  display: flex;
+  background: #05080d;
+}
+
+/* Map takes command priority */
+.map-container,
+.leaflet-container {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: #07111c !important;
+}
+
+/* Tactical panels */
+.left-panel,
+.right-panel,
+.alert-panel,
+.watchlist-panel,
+.panel,
+.card,
+.sidebar {
+  background: rgba(5, 12, 22, 0.88) !important;
+  border: 1px solid rgba(0, 220, 255, 0.28) !important;
+  box-shadow: 0 0 18px rgba(0, 180, 255, 0.18) !important;
+  backdrop-filter: blur(8px);
+  color: #d8f3ff !important;
+  border-radius: 8px !important;
+}
+
+/* Keep panels compact */
+.left-panel,
+.sidebar {
+  width: 300px !important;
+  max-width: 300px !important;
+}
+
+.right-panel,
+.alert-panel,
+.watchlist-panel {
+  width: 340px !important;
+  max-width: 340px !important;
+}
+
+/* Headers / titles */
+h1, h2, h3, .title, .panel-title {
+  color: #7ee7ff !important;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  font-weight: 700;
+}
+
+/* Buttons and toggles */
+button,
+.toggle,
+.layer-toggle {
+  background: linear-gradient(180deg, #10283a, #07131f) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.45) !important;
+  border-radius: 6px !important;
+  padding: 6px 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover,
+.toggle:hover,
+.layer-toggle:hover {
+  background: #123a52 !important;
+  box-shadow: 0 0 10px rgba(0, 220, 255, 0.35);
+}
+
+/* Alert colours */
+.high,
+.high-risk,
+.risk-high,
+.alert-high {
+  color: #ff4d4d !important;
+  border-color: rgba(255, 77, 77, 0.65) !important;
+}
+
+.medium,
+.medium-risk,
+.risk-medium,
+.alert-medium {
+  color: #ffd166 !important;
+  border-color: rgba(255, 209, 102, 0.65) !important;
+}
+
+.low,
+.low-risk,
+.risk-low,
+.alert-low {
+  color: #4dff9d !important;
+  border-color: rgba(77, 255, 157, 0.55) !important;
+}
+
+/* Leaflet tactical styling */
+.leaflet-control,
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgba(5, 12, 22, 0.94) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.35) !important;
+}
+
+.leaflet-control a {
+  background: #07131f !important;
+  color: #7ee7ff !important;
+  border-color: rgba(0, 220, 255, 0.25) !important;
+}
+
+/* Tactical grid overlay effect */
+.map-shell::after,
+.map-layout::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 220, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 220, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  z-index: 500;
+}
+
+/* Data labels */
+.badge,
+.label,
+.status,
+.data-source,
+.last-updated {
+  background: rgba(0, 220, 255, 0.08) !important;
+  border: 1px solid rgba(0, 220, 255, 0.32) !important;
+  color: #9ff3ff !important;
+  border-radius: 999px !important;
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  letter-spacing: 0.5px;
+}
+
+/* Tables/cards */
+table,
+.vessel-card,
+.alert-card,
+.report-card {
+  background: rgba(3, 10, 18, 0.82) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.22) !important;
+  border-radius: 8px !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #05080d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #164b63;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1f6f8d;
+}
+
+/* MASTER GRID (THIS IS THE FIX) */
+.app-root {
+  display: grid;
+  grid-template-columns: 300px 1fr 340px;
+  grid-template-rows: 100vh;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* LEFT PANEL */
+.left-panel {
+  grid-column: 1;
+  background: rgba(5,12,22,0.95);
+  padding: 15px;
+  border-right: 1px solid rgba(0,220,255,0.2);
+}
+
+/* CENTER MAP */
+.map-wrapper {
+  grid-column: 2;
+  position: relative;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+  grid-column: 3;
+  background: rgba(5,12,22,0.95);
+  padding: 15px;
+  border-left: 1px solid rgba(0,220,255,0.2);
+}
+
+/* ALERT CARDS */
+.alert {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.alert.high {
+  background: rgba(255,0,0,0.2);
+  border: 1px solid rgba(255,0,0,0.5);
+}
+

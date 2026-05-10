@@ -1,0 +1,16 @@
+[
+  {
+    "name": "TEST CONTACT",
+    "role": "Customs Test",
+    "email": "averiagadi@gmail.com",
+    "phone": "+6792352809",
+    "enabled": true
+  },
+  {
+    "name": "Customs Officer",
+    "role": "Pilot Demonstration",
+    "email": "locokuliniasi691@gmail.com",
+    "phone": "+6792352809",
+    "enabled": true
+  }
+]

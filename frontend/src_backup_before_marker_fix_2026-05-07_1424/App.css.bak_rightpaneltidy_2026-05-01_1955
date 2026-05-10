@@ -1,0 +1,634 @@
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow: hidden;
+  background: #05080d;
+  color: #d8f3ff;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app,
+.dashboard,
+.godseye-app {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  background: #05080d;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main tactical command layout */
+.main-layout,
+.map-layout,
+.content,
+.map-shell {
+  flex: 1 1 auto !important;
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 0;
+  display: flex;
+  background: #05080d;
+}
+
+/* Map takes command priority */
+.map-container,
+.leaflet-container {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: #07111c !important;
+}
+
+/* Tactical panels */
+.left-panel,
+.right-panel,
+.alert-panel,
+.watchlist-panel,
+.panel,
+.card,
+.sidebar {
+  background: rgba(5, 12, 22, 0.88) !important;
+  border: 1px solid rgba(0, 220, 255, 0.28) !important;
+  box-shadow: 0 0 18px rgba(0, 180, 255, 0.18) !important;
+  backdrop-filter: blur(8px);
+  color: #d8f3ff !important;
+  border-radius: 8px !important;
+}
+
+/* Keep panels compact */
+.left-panel,
+.sidebar {
+  width: 300px !important;
+  max-width: 300px !important;
+}
+
+.right-panel,
+.alert-panel,
+.watchlist-panel {
+  width: 340px !important;
+  max-width: 340px !important;
+}
+
+/* Headers / titles */
+h1, h2, h3, .title, .panel-title {
+  color: #7ee7ff !important;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  font-weight: 700;
+}
+
+/* Buttons and toggles */
+button,
+.toggle,
+.layer-toggle {
+  background: linear-gradient(180deg, #10283a, #07131f) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.45) !important;
+  border-radius: 6px !important;
+  padding: 6px 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover,
+.toggle:hover,
+.layer-toggle:hover {
+  background: #123a52 !important;
+  box-shadow: 0 0 10px rgba(0, 220, 255, 0.35);
+}
+
+/* Alert colours */
+.high,
+.high-risk,
+.risk-high,
+.alert-high {
+  color: #ff4d4d !important;
+  border-color: rgba(255, 77, 77, 0.65) !important;
+}
+
+.medium,
+.medium-risk,
+.risk-medium,
+.alert-medium {
+  color: #ffd166 !important;
+  border-color: rgba(255, 209, 102, 0.65) !important;
+}
+
+.low,
+.low-risk,
+.risk-low,
+.alert-low {
+  color: #4dff9d !important;
+  border-color: rgba(77, 255, 157, 0.55) !important;
+}
+
+/* Leaflet tactical styling */
+.leaflet-control,
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgba(5, 12, 22, 0.94) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.35) !important;
+}
+
+.leaflet-control a {
+  background: #07131f !important;
+  color: #7ee7ff !important;
+  border-color: rgba(0, 220, 255, 0.25) !important;
+}
+
+/* Tactical grid overlay effect */
+.map-shell::after,
+.map-layout::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 220, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 220, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  z-index: 500;
+}
+
+/* Data labels */
+.badge,
+.label,
+.status,
+.data-source,
+.last-updated {
+  background: rgba(0, 220, 255, 0.08) !important;
+  border: 1px solid rgba(0, 220, 255, 0.32) !important;
+  color: #9ff3ff !important;
+  border-radius: 999px !important;
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  letter-spacing: 0.5px;
+}
+
+/* Tables/cards */
+table,
+.vessel-card,
+.alert-card,
+.report-card {
+  background: rgba(3, 10, 18, 0.82) !important;
+  color: #d8f3ff !important;
+  border: 1px solid rgba(0, 220, 255, 0.22) !important;
+  border-radius: 8px !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #05080d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #164b63;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1f6f8d;
+}
+
+/* MASTER GRID (THIS IS THE FIX) */
+.app-root {
+  display: grid;
+  grid-template-columns: 300px 1fr 340px;
+  grid-template-rows: 100vh;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* LEFT PANEL */
+.left-panel {
+  grid-column: 1;
+  background: rgba(5,12,22,0.95);
+  padding: 15px;
+  border-right: 1px solid rgba(0,220,255,0.2);
+}
+
+/* CENTER MAP */
+.map-wrapper {
+  grid-column: 2;
+  position: relative;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+  grid-column: 3;
+  background: rgba(5,12,22,0.95);
+  padding: 15px;
+  border-left: 1px solid rgba(0,220,255,0.2);
+}
+
+/* ALERT CARDS */
+.alert {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.alert.high {
+  background: rgba(255,0,0,0.2);
+  border: 1px solid rgba(255,0,0,0.5);
+}
+
+
+/* ===== FORCE FULLSCREEN LAYOUT ===== */
+html, body, #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Remove any container limits */
+.app, .dashboard, .main-layout, .content {
+  width: 100vw !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ===== MAP TAKES FULL WIDTH ===== */
+.leaflet-container {
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 1;
+}
+
+/* ===== LEFT CONTROL PANEL (FLOATING COMMAND) ===== */
+.left-panel,
+.phase-controls {
+  position: absolute !important;
+  top: 20px;
+  left: 20px;
+  width: 280px;
+  z-index: 1000;
+
+  background: rgba(5, 12, 22, 0.92);
+  border: 1px solid rgba(0, 220, 255, 0.25);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* ===== RIGHT INTEL PANEL (DOCKED) ===== */
+.right-panel,
+.intelligence-panel {
+  position: absolute !important;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 340px;
+  z-index: 1000;
+
+  background: rgba(5, 12, 22, 0.95);
+  border-left: 1px solid rgba(0, 220, 255, 0.25);
+  padding: 14px;
+
+  overflow-y: auto;
+}
+
+/* ===== LEGEND POSITION ===== */
+.map-legend {
+  position: absolute !important;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+/* ===== REMOVE SIDE GAPS ===== */
+.leaflet-container,
+.map-container,
+#map {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ===== CLEAN TOP LABEL ===== */
+.last-updated {
+  position: absolute !important;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
+
+/* ===== TACTICAL GRID OVERLAY ===== */
+.leaflet-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+
+  background-size: 50px 50px;
+  z-index: 500;
+}
+
+/* ===== IMPROVE ALERT VISIBILITY ===== */
+.alert, .alert-card {
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.alert.high {
+  background: rgba(255, 0, 0, 0.25);
+  border: 1px solid rgba(255, 0, 0, 0.6);
+}
+
+/* ===== SCROLL FIX ===== */
+.right-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.right-panel::-webkit-scrollbar-thumb {
+  background: #0aa;
+  border-radius: 10px;
+}
+
+
+/* ===== GOD'S EYE FULLSCREEN MAP FIX ===== */
+
+html, body, #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #05080d !important;
+}
+
+/* Force every possible app wrapper full width */
+body > div,
+#root > div,
+.app,
+.dashboard,
+.godseye-app,
+.main-layout,
+.map-layout,
+.content,
+.map-shell,
+.map-wrapper,
+.map-container {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  left: 0 !important;
+}
+
+/* Force Leaflet map to occupy the screen */
+.leaflet-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 340px !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  z-index: 1 !important;
+}
+
+/* Right intelligence dock */
+.intelligence-panel,
+.right-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 340px !important;
+  height: 100vh !important;
+  z-index: 2000 !important;
+  overflow-y: auto !important;
+}
+
+/* Left tactical controls */
+.phase-controls,
+.left-panel {
+  position: fixed !important;
+  top: 20px !important;
+  left: 70px !important;
+  width: 280px !important;
+  z-index: 2000 !important;
+}
+
+/* Legend */
+.map-legend {
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 70px !important;
+  z-index: 2000 !important;
+}
+
+/* Last updated badge */
+.last-updated {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 2000 !important;
+}
+
+
+/* ===== HARD EDGE-TO-EDGE COMMAND DASHBOARD FIX ===== */
+
+html, body, #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #05080d !important;
+}
+
+/* Stop the whole dashboard being centred */
+#root,
+#root > div,
+.app,
+.dashboard,
+.godseye-app,
+.main-layout,
+.map-layout,
+.content,
+.map-shell,
+.map-wrapper,
+.map-container {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+/* Force map to fill screen except right intel dock */
+.leaflet-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 340px !important;
+  bottom: 0 !important;
+  width: calc(100vw - 340px) !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 1 !important;
+  background: #07111c !important;
+}
+
+/* Force all Leaflet internals to behave */
+.leaflet-map-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-marker-pane,
+.leaflet-shadow-pane,
+.leaflet-tile-container {
+  z-index: auto;
+}
+
+/* Right intelligence panel - catch different class names */
+.right-panel,
+.intelligence-panel,
+.intel-panel,
+[class*="right"],
+[class*="Right"],
+[class*="intelligence"],
+[class*="Intelligence"] {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  left: auto !important;
+  width: 340px !important;
+  height: 100vh !important;
+  max-width: 340px !important;
+  z-index: 3000 !important;
+  overflow-y: auto !important;
+  background: rgba(5, 12, 22, 0.96) !important;
+}
+
+/* Left floating control box */
+.left-panel,
+.phase-controls,
+.controls-panel,
+[class*="control"],
+[class*="Control"] {
+  position: fixed !important;
+  top: 20px !important;
+  left: 70px !important;
+  width: 280px !important;
+  max-width: 280px !important;
+  z-index: 3000 !important;
+}
+
+/* Legend */
+.map-legend,
+.legend,
+[class*="legend"],
+[class*="Legend"] {
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 70px !important;
+  z-index: 3000 !important;
+}
+
+/* Last updated badge */
+.last-updated,
+[class*="updated"],
+[class*="Updated"] {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 3000 !important;
+}
+
+
+/* ===== ROOT CONTAINER OVERRIDE (THIS IS THE REAL FIX) ===== */
+
+/* Kill Vite default centering */
+#root {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* Kill any flex centering from templates */
+body {
+  display: block !important;
+}
+
+/* Remove any global centering wrappers */
+body > div {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure map truly fills */
+.leaflet-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 340px !important;
+  bottom: 0 !important;
+  width: calc(100vw - 340px) !important;
+  height: 100vh !important;
+  z-index: 1 !important;
+}
+
+/* Right panel stays locked */
+.right-panel,
+.intelligence-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 340px !important;
+  height: 100vh !important;
+  z-index: 2000 !important;
+}
+
+/* Left controls float */
+.phase-controls {
+  position: fixed !important;
+  top: 20px !important;
+  left: 70px !important;
+  z-index: 2000 !important;
+}
+
+/* Fix the white top/bottom gaps */
+.leaflet-container,
+.map-container {
+  background: #07111c !important;
+}
+

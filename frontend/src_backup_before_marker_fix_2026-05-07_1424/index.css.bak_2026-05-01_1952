@@ -1,0 +1,18 @@
+html, body, #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #05080d !important;
+}
+
+body {
+  display: block !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+}
+
+* {
+  box-sizing: border-box;
+}

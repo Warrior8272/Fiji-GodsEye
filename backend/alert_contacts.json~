@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Kuliniasi",
+    "role": "GodsEye Admin",
+    "email": "locokuliniasi691@gmail.com",
+    "phone": "+6792352809X",
+    "enabled": true
+  },
+  {
+    "name": "Customs Officer",
+    "role": "Pilot Demonstration",
+    "email": "their_real_email_here",
+    "phone": "+67992352809",
+    "enabled": true
+  }
+]
