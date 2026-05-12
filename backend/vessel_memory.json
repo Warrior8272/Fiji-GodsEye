@@ -1,1469 +1,1468 @@
 {
-  "520309000": {
-    "mmsi": "520309000",
-    "first_seen": "2026-05-10T23:45:34.637480",
-    "last_seen": "2026-05-10T23:46:55.163961",
-    "event_count": 10,
+  "334853000": {
+    "mmsi": "334853000",
+    "first_seen": "2026-05-12T23:06:56.322475",
+    "last_seen": "2026-05-12T23:11:51.392472",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "305222000": {
+    "mmsi": "305222000",
+    "first_seen": "2026-05-12T23:06:56.322732",
+    "last_seen": "2026-05-12T23:11:51.392818",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710028180": {
+    "mmsi": "710028180",
+    "first_seen": "2026-05-12T23:06:56.323033",
+    "last_seen": "2026-05-12T23:11:51.393170",
+    "event_count": 93,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
-    "watch_zone_entries": 4,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "710030930": {
+    "mmsi": "710030930",
+    "first_seen": "2026-05-12T23:06:56.325398",
+    "last_seen": "2026-05-12T23:11:51.393510",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
     "historical_flags": [
-      "Entered Watch Zone"
+      "Loitering Detected"
     ],
-    "repeat_offender_score": 42,
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710015310": {
+    "mmsi": "710015310",
+    "first_seen": "2026-05-12T23:06:56.325758",
+    "last_seen": "2026-05-12T23:11:51.393858",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "563285900": {
+    "mmsi": "563285900",
+    "first_seen": "2026-05-12T23:06:56.326149",
+    "last_seen": "2026-05-12T23:11:51.394195",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710430000": {
+    "mmsi": "710430000",
+    "first_seen": "2026-05-12T23:06:56.326476",
+    "last_seen": "2026-05-12T23:11:51.394543",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "710102038": {
+    "mmsi": "710102038",
+    "first_seen": "2026-05-12T23:06:56.326710",
+    "last_seen": "2026-05-12T23:11:51.394891",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "352002481": {
+    "mmsi": "352002481",
+    "first_seen": "2026-05-12T23:06:56.326961",
+    "last_seen": "2026-05-12T23:11:51.395229",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "710025720": {
+    "mmsi": "710025720",
+    "first_seen": "2026-05-12T23:06:56.327201",
+    "last_seen": "2026-05-12T23:11:51.395578",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710499300": {
+    "mmsi": "710499300",
+    "first_seen": "2026-05-12T23:06:56.327453",
+    "last_seen": "2026-05-12T23:11:51.395963",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "518998911": {
+    "mmsi": "518998911",
+    "first_seen": "2026-05-12T23:06:56.327725",
+    "last_seen": "2026-05-12T23:11:51.396304",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "564788000": {
+    "mmsi": "564788000",
+    "first_seen": "2026-05-12T23:06:56.328006",
+    "last_seen": "2026-05-12T23:11:51.396638",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "413289780": {
+    "mmsi": "413289780",
+    "first_seen": "2026-05-12T23:06:56.328286",
+    "last_seen": "2026-05-12T23:11:51.396973",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710002134": {
+    "mmsi": "710002134",
+    "first_seen": "2026-05-12T23:06:56.328586",
+    "last_seen": "2026-05-12T23:11:51.397300",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "503000172": {
+    "mmsi": "503000172",
+    "first_seen": "2026-05-12T23:06:56.328871",
+    "last_seen": "2026-05-12T23:11:51.397644",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "311001542": {
+    "mmsi": "311001542",
+    "first_seen": "2026-05-12T23:06:56.329137",
+    "last_seen": "2026-05-12T23:11:51.397995",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710027960": {
+    "mmsi": "710027960",
+    "first_seen": "2026-05-12T23:06:56.329416",
+    "last_seen": "2026-05-12T23:11:51.398347",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710019710": {
+    "mmsi": "710019710",
+    "first_seen": "2026-05-12T23:06:56.329688",
+    "last_seen": "2026-05-12T23:11:51.398688",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "249842000": {
+    "mmsi": "249842000",
+    "first_seen": "2026-05-12T23:06:56.329959",
+    "last_seen": "2026-05-12T23:11:51.399057",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "538007668": {
+    "mmsi": "538007668",
+    "first_seen": "2026-05-12T23:06:56.330250",
+    "last_seen": "2026-05-12T23:11:51.447716",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "503108910": {
+    "mmsi": "503108910",
+    "first_seen": "2026-05-12T23:06:56.330569",
+    "last_seen": "2026-05-12T23:11:51.450221",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "503036370": {
+    "mmsi": "503036370",
+    "first_seen": "2026-05-12T23:06:56.330895",
+    "last_seen": "2026-05-12T23:11:51.451382",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "440422000": {
+    "mmsi": "440422000",
+    "first_seen": "2026-05-12T23:06:56.331203",
+    "last_seen": "2026-05-12T23:11:51.452097",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710020990": {
+    "mmsi": "710020990",
+    "first_seen": "2026-05-12T23:06:56.331575",
+    "last_seen": "2026-05-12T23:11:51.452466",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "518998761": {
+    "mmsi": "518998761",
+    "first_seen": "2026-05-12T23:06:56.331960",
+    "last_seen": "2026-05-12T23:11:51.452819",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "503756000": {
+    "mmsi": "503756000",
+    "first_seen": "2026-05-12T23:06:56.332291",
+    "last_seen": "2026-05-12T23:11:51.453161",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "256880000": {
+    "mmsi": "256880000",
+    "first_seen": "2026-05-12T23:06:56.332664",
+    "last_seen": "2026-05-12T23:11:51.453508",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "710005167": {
+    "mmsi": "710005167",
+    "first_seen": "2026-05-12T23:06:56.332990",
+    "last_seen": "2026-05-12T23:11:51.453853",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "710021750": {
+    "mmsi": "710021750",
+    "first_seen": "2026-05-12T23:06:56.333324",
+    "last_seen": "2026-05-12T23:11:51.454187",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710004737": {
+    "mmsi": "710004737",
+    "first_seen": "2026-05-12T23:06:56.333691",
+    "last_seen": "2026-05-12T23:11:51.454521",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "710422000": {
+    "mmsi": "710422000",
+    "first_seen": "2026-05-12T23:06:56.334020",
+    "last_seen": "2026-05-12T23:11:51.454846",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "503646000": {
+    "mmsi": "503646000",
+    "first_seen": "2026-05-12T23:06:56.334354",
+    "last_seen": "2026-05-12T23:11:51.455172",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710005127": {
+    "mmsi": "710005127",
+    "first_seen": "2026-05-12T23:06:56.334754",
+    "last_seen": "2026-05-12T23:11:51.455529",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "503477300": {
+    "mmsi": "503477300",
+    "first_seen": "2026-05-12T23:06:56.335559",
+    "last_seen": "2026-05-12T23:11:51.455957",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710102030": {
+    "mmsi": "710102030",
+    "first_seen": "2026-05-12T23:06:56.336008",
+    "last_seen": "2026-05-12T23:11:51.456318",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "710050000": {
+    "mmsi": "710050000",
+    "first_seen": "2026-05-12T23:06:56.336366",
+    "last_seen": "2026-05-12T23:11:51.456664",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710008330": {
+    "mmsi": "710008330",
+    "first_seen": "2026-05-12T23:06:56.336881",
+    "last_seen": "2026-05-12T23:11:51.457000",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710239000": {
+    "mmsi": "710239000",
+    "first_seen": "2026-05-12T23:06:56.337353",
+    "last_seen": "2026-05-12T23:11:51.457333",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "710000391": {
+    "mmsi": "710000391",
+    "first_seen": "2026-05-12T23:06:56.337843",
+    "last_seen": "2026-05-12T23:11:51.457671",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "577989000": {
+    "mmsi": "577989000",
+    "first_seen": "2026-05-12T23:06:56.338228",
+    "last_seen": "2026-05-12T23:11:51.458001",
+    "event_count": 93,
+    "dark_activity_count": 0,
+    "loitering_count": 83,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 880,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "369932000": {
+    "mmsi": "369932000",
+    "first_seen": "2026-05-12T23:06:56.477072",
+    "last_seen": "2026-05-12T23:11:51.367311",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "477477400": {
+    "mmsi": "477477400",
+    "first_seen": "2026-05-12T23:06:56.482504",
+    "last_seen": "2026-05-12T23:11:51.368014",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 0,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
     "offender_status": "MONITORED"
   },
   "319117400": {
     "mmsi": "319117400",
-    "first_seen": "2026-05-10T23:45:34.638269",
-    "last_seen": "2026-05-10T23:46:55.171300",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.484186",
+    "last_seen": "2026-05-12T23:11:51.368448",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 82,
+    "historical_flags": [
+      "Loitering Detected",
+      "Entered Watch Zone"
+    ],
+    "repeat_offender_score": 1526,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "235087791": {
+    "mmsi": "235087791",
+    "first_seen": "2026-05-12T23:06:56.484664",
+    "last_seen": "2026-05-12T23:11:51.368829",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "319080000": {
+    "mmsi": "319080000",
+    "first_seen": "2026-05-12T23:06:56.484981",
+    "last_seen": "2026-05-12T23:11:51.369226",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "253000026": {
+    "mmsi": "253000026",
+    "first_seen": "2026-05-12T23:06:56.485276",
+    "last_seen": "2026-05-12T23:11:51.369633",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected",
+      "In Port Zone"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "561006006": {
+    "mmsi": "561006006",
+    "first_seen": "2026-05-12T23:06:56.485876",
+    "last_seen": "2026-05-12T23:11:51.370154",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "235085287": {
+    "mmsi": "235085287",
+    "first_seen": "2026-05-12T23:06:56.486241",
+    "last_seen": "2026-05-12T23:11:51.370735",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "570477000": {
+    "mmsi": "570477000",
+    "first_seen": "2026-05-12T23:06:56.486826",
+    "last_seen": "2026-05-12T23:11:51.371124",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "319245300": {
+    "mmsi": "319245300",
+    "first_seen": "2026-05-12T23:06:56.487623",
+    "last_seen": "2026-05-12T23:11:51.371573",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "352003022": {
+    "mmsi": "352003022",
+    "first_seen": "2026-05-12T23:06:56.488104",
+    "last_seen": "2026-05-12T23:11:51.372013",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "520309000": {
+    "mmsi": "520309000",
+    "first_seen": "2026-05-12T23:06:56.488583",
+    "last_seen": "2026-05-12T23:11:51.372514",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "570456000": {
+    "mmsi": "570456000",
+    "first_seen": "2026-05-12T23:06:56.489058",
+    "last_seen": "2026-05-12T23:11:51.373776",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "561007001": {
+    "mmsi": "561007001",
+    "first_seen": "2026-05-12T23:06:56.489559",
+    "last_seen": "2026-05-12T23:11:51.374480",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
-    "watch_zone_entries": 6,
-    "historical_flags": [
-      "Entered Watch Zone"
-    ],
-    "repeat_offender_score": 58,
+    "watch_zone_entries": 0,
+    "historical_flags": [],
+    "repeat_offender_score": 50,
     "offender_status": "MONITORED"
   },
   "520323000": {
     "mmsi": "520323000",
-    "first_seen": "2026-05-10T23:45:34.638971",
-    "last_seen": "2026-05-10T23:46:55.167122",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.489946",
+    "last_seen": "2026-05-12T23:11:51.374859",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
-      "In Port Zone",
-      "Loitering Detected"
+      "Loitering Detected",
+      "In Port Zone"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "570474000": {
-    "mmsi": "570474000",
-    "first_seen": "2026-05-10T23:45:34.639403",
-    "last_seen": "2026-05-10T23:46:55.171721",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "352001851": {
-    "mmsi": "352001851",
-    "first_seen": "2026-05-10T23:45:34.643881",
-    "last_seen": "2026-05-10T23:46:55.172098",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "570456000": {
-    "mmsi": "570456000",
-    "first_seen": "2026-05-10T23:45:34.644242",
-    "last_seen": "2026-05-10T23:46:55.172457",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "570315000": {
-    "mmsi": "570315000",
-    "first_seen": "2026-05-10T23:45:34.644638",
-    "last_seen": "2026-05-10T23:46:55.170875",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "518918000": {
-    "mmsi": "518918000",
-    "first_seen": "2026-05-10T23:45:34.645952",
-    "last_seen": "2026-05-10T23:46:55.169870",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "561006004": {
     "mmsi": "561006004",
-    "first_seen": "2026-05-10T23:45:34.647575",
-    "last_seen": "2026-05-10T23:46:55.159362",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.490439",
+    "last_seen": "2026-05-12T23:11:51.375195",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "477477400": {
-    "mmsi": "477477400",
-    "first_seen": "2026-05-10T23:45:34.648612",
-    "last_seen": "2026-05-10T23:46:55.169293",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "520272000": {
-    "mmsi": "520272000",
-    "first_seen": "2026-05-10T23:45:34.649616",
-    "last_seen": "2026-05-10T23:46:55.162604",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "561007001": {
-    "mmsi": "561007001",
-    "first_seen": "2026-05-10T23:45:34.650026",
-    "last_seen": "2026-05-10T23:46:55.170422",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
   },
   "563258200": {
     "mmsi": "563258200",
-    "first_seen": "2026-05-10T23:45:34.650241",
-    "last_seen": "2026-05-10T23:46:55.160935",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.490775",
+    "last_seen": "2026-05-12T23:11:51.375638",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
-      "In Port Zone",
-      "Loitering Detected"
+      "Loitering Detected",
+      "In Port Zone"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
-  "235087791": {
-    "mmsi": "235087791",
-    "first_seen": "2026-05-10T23:45:34.650484",
-    "last_seen": "2026-05-10T23:46:55.165196",
-    "event_count": 10,
+  "518918000": {
+    "mmsi": "518918000",
+    "first_seen": "2026-05-12T23:06:56.491240",
+    "last_seen": "2026-05-12T23:11:51.375991",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "563087100": {
     "mmsi": "563087100",
-    "first_seen": "2026-05-10T23:45:34.650945",
-    "last_seen": "2026-05-10T23:46:55.167899",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.491807",
+    "last_seen": "2026-05-12T23:11:51.376326",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
-  "235085287": {
-    "mmsi": "235085287",
-    "first_seen": "2026-05-10T23:45:34.651652",
-    "last_seen": "2026-05-10T23:46:55.168616",
-    "event_count": 10,
+  "352001851": {
+    "mmsi": "352001851",
+    "first_seen": "2026-05-12T23:06:56.492219",
+    "last_seen": "2026-05-12T23:11:51.376649",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "319245300": {
-    "mmsi": "319245300",
-    "first_seen": "2026-05-10T23:45:34.652369",
-    "last_seen": "2026-05-10T23:46:55.172809",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "570477000": {
-    "mmsi": "570477000",
-    "first_seen": "2026-05-10T23:45:34.652620",
-    "last_seen": "2026-05-10T23:46:55.173174",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "561006006": {
-    "mmsi": "561006006",
-    "first_seen": "2026-05-10T23:45:34.652825",
-    "last_seen": "2026-05-10T23:46:55.173655",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "319080000": {
-    "mmsi": "319080000",
-    "first_seen": "2026-05-10T23:45:34.653117",
-    "last_seen": "2026-05-10T23:46:55.166280",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "570459000": {
     "mmsi": "570459000",
-    "first_seen": "2026-05-10T23:45:34.653343",
-    "last_seen": "2026-05-10T23:46:55.174367",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.492712",
+    "last_seen": "2026-05-12T23:11:51.376997",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
+  },
+  "520272000": {
+    "mmsi": "520272000",
+    "first_seen": "2026-05-12T23:06:56.493196",
+    "last_seen": "2026-05-12T23:11:51.377341",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "570315000": {
+    "mmsi": "570315000",
+    "first_seen": "2026-05-12T23:06:56.493679",
+    "last_seen": "2026-05-12T23:11:51.377707",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
+  },
+  "570474000": {
+    "mmsi": "570474000",
+    "first_seen": "2026-05-12T23:06:56.494219",
+    "last_seen": "2026-05-12T23:11:51.378051",
+    "event_count": 92,
+    "dark_activity_count": 0,
+    "loitering_count": 82,
+    "rendezvous_count": 0,
+    "watch_zone_entries": 0,
+    "historical_flags": [
+      "Loitering Detected"
+    ],
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "563137500": {
     "mmsi": "563137500",
-    "first_seen": "2026-05-10T23:45:34.653536",
-    "last_seen": "2026-05-10T23:46:55.174946",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.494713",
+    "last_seen": "2026-05-12T23:11:51.378412",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
-    "watch_zone_entries": 6,
+    "watch_zone_entries": 82,
     "historical_flags": [
       "Entered Watch Zone"
     ],
-    "repeat_offender_score": 58,
-    "offender_status": "MONITORED"
+    "repeat_offender_score": 706,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "518100947": {
     "mmsi": "518100947",
-    "first_seen": "2026-05-10T23:45:34.653702",
-    "last_seen": "2026-05-10T23:46:55.175390",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.495117",
+    "last_seen": "2026-05-12T23:11:51.378773",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "311001595": {
     "mmsi": "311001595",
-    "first_seen": "2026-05-10T23:45:34.653887",
-    "last_seen": "2026-05-10T23:46:55.175820",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.496027",
+    "last_seen": "2026-05-12T23:11:51.379118",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
-      "In Port Zone",
-      "Loitering Detected"
+      "Loitering Detected",
+      "In Port Zone"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "304887000": {
     "mmsi": "304887000",
-    "first_seen": "2026-05-10T23:45:34.654112",
-    "last_seen": "2026-05-10T23:46:55.176245",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.496638",
+    "last_seen": "2026-05-12T23:11:51.379450",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
-    "watch_zone_entries": 6,
+    "watch_zone_entries": 82,
     "historical_flags": [
       "Entered Watch Zone"
     ],
-    "repeat_offender_score": 58,
-    "offender_status": "MONITORED"
+    "repeat_offender_score": 706,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "228423800": {
     "mmsi": "228423800",
-    "first_seen": "2026-05-10T23:45:34.654293",
-    "last_seen": "2026-05-10T23:46:55.176630",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.497218",
+    "last_seen": "2026-05-12T23:11:51.379832",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
-    "watch_zone_entries": 6,
+    "watch_zone_entries": 82,
     "historical_flags": [
       "Entered Watch Zone"
     ],
-    "repeat_offender_score": 58,
-    "offender_status": "MONITORED"
+    "repeat_offender_score": 706,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "520457000": {
     "mmsi": "520457000",
-    "first_seen": "2026-05-10T23:45:34.654456",
-    "last_seen": "2026-05-10T23:46:55.176995",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.497720",
+    "last_seen": "2026-05-12T23:11:51.380166",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
-      "In Port Zone",
-      "Loitering Detected"
+      "Loitering Detected",
+      "In Port Zone"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "563214600": {
     "mmsi": "563214600",
-    "first_seen": "2026-05-10T23:45:34.654625",
-    "last_seen": "2026-05-10T23:46:55.177369",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.498273",
+    "last_seen": "2026-05-12T23:11:51.380517",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
   },
   "431548000": {
     "mmsi": "431548000",
-    "first_seen": "2026-05-10T23:45:34.654785",
-    "last_seen": "2026-05-10T23:46:55.177834",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.498707",
+    "last_seen": "2026-05-12T23:11:51.380856",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
   },
   "518999591": {
     "mmsi": "518999591",
-    "first_seen": "2026-05-10T23:45:34.654950",
-    "last_seen": "2026-05-10T23:46:55.178246",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.499165",
+    "last_seen": "2026-05-12T23:11:51.381218",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "563060800": {
     "mmsi": "563060800",
-    "first_seen": "2026-05-10T23:45:34.655109",
-    "last_seen": "2026-05-10T23:46:55.178686",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.499762",
+    "last_seen": "2026-05-12T23:11:51.381573",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "518100460": {
     "mmsi": "518100460",
-    "first_seen": "2026-05-10T23:45:34.655332",
-    "last_seen": "2026-05-10T23:46:55.179022",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.500333",
+    "last_seen": "2026-05-12T23:11:51.382196",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "253000026": {
-    "mmsi": "253000026",
-    "first_seen": "2026-05-10T23:45:34.655620",
-    "last_seen": "2026-05-10T23:46:55.179369",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 6,
-    "historical_flags": [
-      "Entered Watch Zone",
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 68,
-    "offender_status": "REPEAT ACTIVITY"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "561006005": {
     "mmsi": "561006005",
-    "first_seen": "2026-05-10T23:45:34.655956",
-    "last_seen": "2026-05-10T23:46:55.179724",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.500946",
+    "last_seen": "2026-05-12T23:11:51.382877",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
   },
   "503046340": {
     "mmsi": "503046340",
-    "first_seen": "2026-05-10T23:45:34.656213",
-    "last_seen": "2026-05-10T23:46:55.180047",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.501484",
+    "last_seen": "2026-05-12T23:11:51.383408",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "503150610": {
     "mmsi": "503150610",
-    "first_seen": "2026-05-10T23:45:34.656475",
-    "last_seen": "2026-05-10T23:46:55.180380",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.502004",
+    "last_seen": "2026-05-12T23:11:51.383862",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "503024450": {
     "mmsi": "503024450",
-    "first_seen": "2026-05-10T23:45:34.656766",
-    "last_seen": "2026-05-10T23:46:55.180710",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.502612",
+    "last_seen": "2026-05-12T23:11:51.384253",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "636025623": {
     "mmsi": "636025623",
-    "first_seen": "2026-05-10T23:45:34.657332",
-    "last_seen": "2026-05-10T23:46:55.181039",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.503243",
+    "last_seen": "2026-05-12T23:11:51.384612",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "553111786": {
     "mmsi": "553111786",
-    "first_seen": "2026-05-10T23:45:34.657688",
-    "last_seen": "2026-05-10T23:46:55.181413",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.503987",
+    "last_seen": "2026-05-12T23:11:51.384961",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "477142800": {
     "mmsi": "477142800",
-    "first_seen": "2026-05-10T23:45:34.658076",
-    "last_seen": "2026-05-10T23:46:55.182024",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.504690",
+    "last_seen": "2026-05-12T23:11:51.385296",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
   },
   "570316000": {
     "mmsi": "570316000",
-    "first_seen": "2026-05-10T23:45:34.658343",
-    "last_seen": "2026-05-10T23:46:55.182603",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.505294",
+    "last_seen": "2026-05-12T23:11:51.385663",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "503338000": {
     "mmsi": "503338000",
-    "first_seen": "2026-05-10T23:45:34.658598",
-    "last_seen": "2026-05-10T23:46:55.183046",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.505942",
+    "last_seen": "2026-05-12T23:11:51.386000",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710026230": {
     "mmsi": "710026230",
-    "first_seen": "2026-05-10T23:45:34.658899",
-    "last_seen": "2026-05-10T23:46:55.183415",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.506408",
+    "last_seen": "2026-05-12T23:11:51.386350",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "503000225": {
     "mmsi": "503000225",
-    "first_seen": "2026-05-10T23:45:34.659146",
-    "last_seen": "2026-05-10T23:46:55.183823",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.506851",
+    "last_seen": "2026-05-12T23:11:51.386699",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710400522": {
     "mmsi": "710400522",
-    "first_seen": "2026-05-10T23:45:34.659384",
-    "last_seen": "2026-05-10T23:46:55.184271",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.507254",
+    "last_seen": "2026-05-12T23:11:51.387039",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710006848": {
     "mmsi": "710006848",
-    "first_seen": "2026-05-10T23:45:34.659688",
-    "last_seen": "2026-05-10T23:46:55.184701",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.507699",
+    "last_seen": "2026-05-12T23:11:51.387495",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710018340": {
     "mmsi": "710018340",
-    "first_seen": "2026-05-10T23:45:34.659909",
-    "last_seen": "2026-05-10T23:46:55.185111",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.508122",
+    "last_seen": "2026-05-12T23:11:51.387943",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "561006007": {
     "mmsi": "561006007",
-    "first_seen": "2026-05-10T23:45:34.660115",
-    "last_seen": "2026-05-10T23:46:55.186111",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.508526",
+    "last_seen": "2026-05-12T23:11:51.388306",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710012740": {
     "mmsi": "710012740",
-    "first_seen": "2026-05-10T23:45:34.660325",
-    "last_seen": "2026-05-10T23:46:55.186804",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.508914",
+    "last_seen": "2026-05-12T23:11:51.388657",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710008360": {
     "mmsi": "710008360",
-    "first_seen": "2026-05-10T23:45:34.660652",
-    "last_seen": "2026-05-10T23:46:55.187433",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.509298",
+    "last_seen": "2026-05-12T23:11:51.389078",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
   },
   "710004485": {
     "mmsi": "710004485",
-    "first_seen": "2026-05-10T23:45:34.660910",
-    "last_seen": "2026-05-10T23:46:55.187903",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.509691",
+    "last_seen": "2026-05-12T23:11:51.389810",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "538006164": {
     "mmsi": "538006164",
-    "first_seen": "2026-05-10T23:45:34.661134",
-    "last_seen": "2026-05-10T23:46:55.188417",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.510132",
+    "last_seen": "2026-05-12T23:11:51.390324",
+    "event_count": 92,
     "dark_activity_count": 0,
     "loitering_count": 0,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
+    "repeat_offender_score": 50,
+    "offender_status": "MONITORED"
   },
   "258475000": {
     "mmsi": "258475000",
-    "first_seen": "2026-05-10T23:45:34.661352",
-    "last_seen": "2026-05-10T23:46:55.188855",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.510523",
+    "last_seen": "2026-05-12T23:11:51.390695",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710400629": {
     "mmsi": "710400629",
-    "first_seen": "2026-05-10T23:45:34.661567",
-    "last_seen": "2026-05-10T23:46:55.189211",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.510943",
+    "last_seen": "2026-05-12T23:11:51.391045",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710005256": {
     "mmsi": "710005256",
-    "first_seen": "2026-05-10T23:45:34.661786",
-    "last_seen": "2026-05-10T23:46:55.189637",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.511492",
+    "last_seen": "2026-05-12T23:11:51.391396",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "710000115": {
     "mmsi": "710000115",
-    "first_seen": "2026-05-10T23:45:34.662028",
-    "last_seen": "2026-05-10T23:46:55.190277",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.512272",
+    "last_seen": "2026-05-12T23:11:51.391784",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   },
   "503011670": {
     "mmsi": "503011670",
-    "first_seen": "2026-05-10T23:45:34.662957",
-    "last_seen": "2026-05-10T23:46:55.190810",
-    "event_count": 10,
+    "first_seen": "2026-05-12T23:06:56.512722",
+    "last_seen": "2026-05-12T23:11:51.392132",
+    "event_count": 92,
     "dark_activity_count": 0,
-    "loitering_count": 1,
+    "loitering_count": 82,
     "rendezvous_count": 0,
     "watch_zone_entries": 0,
     "historical_flags": [
       "Loitering Detected"
     ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "334853000": {
-    "mmsi": "334853000",
-    "first_seen": "2026-05-10T23:45:34.663206",
-    "last_seen": "2026-05-10T23:46:55.191414",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "305222000": {
-    "mmsi": "305222000",
-    "first_seen": "2026-05-10T23:45:34.663921",
-    "last_seen": "2026-05-10T23:46:55.191973",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710028180": {
-    "mmsi": "710028180",
-    "first_seen": "2026-05-10T23:45:34.664204",
-    "last_seen": "2026-05-10T23:46:55.192372",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "710030930": {
-    "mmsi": "710030930",
-    "first_seen": "2026-05-10T23:45:34.664487",
-    "last_seen": "2026-05-10T23:46:55.192774",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710015310": {
-    "mmsi": "710015310",
-    "first_seen": "2026-05-10T23:45:34.664735",
-    "last_seen": "2026-05-10T23:46:55.193160",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "563285900": {
-    "mmsi": "563285900",
-    "first_seen": "2026-05-10T23:45:34.665013",
-    "last_seen": "2026-05-10T23:46:55.193591",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710430000": {
-    "mmsi": "710430000",
-    "first_seen": "2026-05-10T23:45:34.665256",
-    "last_seen": "2026-05-10T23:46:55.194036",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "710102038": {
-    "mmsi": "710102038",
-    "first_seen": "2026-05-10T23:45:34.665484",
-    "last_seen": "2026-05-10T23:46:55.195216",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "352002481": {
-    "mmsi": "352002481",
-    "first_seen": "2026-05-10T23:45:34.665713",
-    "last_seen": "2026-05-10T23:46:55.195645",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "710025720": {
-    "mmsi": "710025720",
-    "first_seen": "2026-05-10T23:45:34.666089",
-    "last_seen": "2026-05-10T23:46:55.196045",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710499300": {
-    "mmsi": "710499300",
-    "first_seen": "2026-05-10T23:45:34.666545",
-    "last_seen": "2026-05-10T23:46:55.196416",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "518998911": {
-    "mmsi": "518998911",
-    "first_seen": "2026-05-10T23:45:34.667009",
-    "last_seen": "2026-05-10T23:46:55.196743",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "564788000": {
-    "mmsi": "564788000",
-    "first_seen": "2026-05-10T23:45:34.668074",
-    "last_seen": "2026-05-10T23:46:55.197163",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "413289780": {
-    "mmsi": "413289780",
-    "first_seen": "2026-05-10T23:45:34.668541",
-    "last_seen": "2026-05-10T23:46:55.197526",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710002134": {
-    "mmsi": "710002134",
-    "first_seen": "2026-05-10T23:45:34.668978",
-    "last_seen": "2026-05-10T23:46:55.197874",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "503000172": {
-    "mmsi": "503000172",
-    "first_seen": "2026-05-10T23:45:34.669493",
-    "last_seen": "2026-05-10T23:46:55.198276",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "311001542": {
-    "mmsi": "311001542",
-    "first_seen": "2026-05-10T23:45:34.670013",
-    "last_seen": "2026-05-10T23:46:55.198610",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710027960": {
-    "mmsi": "710027960",
-    "first_seen": "2026-05-10T23:45:34.670513",
-    "last_seen": "2026-05-10T23:46:55.198994",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710019710": {
-    "mmsi": "710019710",
-    "first_seen": "2026-05-10T23:45:34.670996",
-    "last_seen": "2026-05-10T23:46:55.199347",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "249842000": {
-    "mmsi": "249842000",
-    "first_seen": "2026-05-10T23:45:34.671519",
-    "last_seen": "2026-05-10T23:46:55.199675",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "538007668": {
-    "mmsi": "538007668",
-    "first_seen": "2026-05-10T23:45:34.672008",
-    "last_seen": "2026-05-10T23:46:55.200040",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "503108910": {
-    "mmsi": "503108910",
-    "first_seen": "2026-05-10T23:45:34.672502",
-    "last_seen": "2026-05-10T23:46:55.200371",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "503036370": {
-    "mmsi": "503036370",
-    "first_seen": "2026-05-10T23:45:34.673001",
-    "last_seen": "2026-05-10T23:46:55.200735",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "440422000": {
-    "mmsi": "440422000",
-    "first_seen": "2026-05-10T23:45:34.673518",
-    "last_seen": "2026-05-10T23:46:55.201112",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710020990": {
-    "mmsi": "710020990",
-    "first_seen": "2026-05-10T23:45:34.674070",
-    "last_seen": "2026-05-10T23:46:55.201467",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "518998761": {
-    "mmsi": "518998761",
-    "first_seen": "2026-05-10T23:45:34.674549",
-    "last_seen": "2026-05-10T23:46:55.201822",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "503756000": {
-    "mmsi": "503756000",
-    "first_seen": "2026-05-10T23:45:34.675081",
-    "last_seen": "2026-05-10T23:46:55.202258",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "256880000": {
-    "mmsi": "256880000",
-    "first_seen": "2026-05-10T23:45:34.675504",
-    "last_seen": "2026-05-10T23:46:55.202620",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "710005167": {
-    "mmsi": "710005167",
-    "first_seen": "2026-05-10T23:45:34.675827",
-    "last_seen": "2026-05-10T23:46:55.203026",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "710021750": {
-    "mmsi": "710021750",
-    "first_seen": "2026-05-10T23:45:34.676127",
-    "last_seen": "2026-05-10T23:46:55.203420",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710004737": {
-    "mmsi": "710004737",
-    "first_seen": "2026-05-10T23:45:34.676417",
-    "last_seen": "2026-05-10T23:46:55.203795",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "710422000": {
-    "mmsi": "710422000",
-    "first_seen": "2026-05-10T23:45:34.676711",
-    "last_seen": "2026-05-10T23:46:55.204147",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "503646000": {
-    "mmsi": "503646000",
-    "first_seen": "2026-05-10T23:45:34.677009",
-    "last_seen": "2026-05-10T23:46:55.204496",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710005127": {
-    "mmsi": "710005127",
-    "first_seen": "2026-05-10T23:45:34.677332",
-    "last_seen": "2026-05-10T23:46:55.204851",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "503477300": {
-    "mmsi": "503477300",
-    "first_seen": "2026-05-10T23:45:34.677647",
-    "last_seen": "2026-05-10T23:46:55.205194",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710102030": {
-    "mmsi": "710102030",
-    "first_seen": "2026-05-10T23:45:34.677981",
-    "last_seen": "2026-05-10T23:46:55.205530",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 0,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [],
-    "repeat_offender_score": 10,
-    "offender_status": "NEW"
-  },
-  "710050000": {
-    "mmsi": "710050000",
-    "first_seen": "2026-05-10T23:45:34.678314",
-    "last_seen": "2026-05-10T23:46:55.205871",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710008330": {
-    "mmsi": "710008330",
-    "first_seen": "2026-05-10T23:45:34.678629",
-    "last_seen": "2026-05-10T23:46:55.206279",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710239000": {
-    "mmsi": "710239000",
-    "first_seen": "2026-05-10T23:45:34.678930",
-    "last_seen": "2026-05-10T23:46:55.206615",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "710000391": {
-    "mmsi": "710000391",
-    "first_seen": "2026-05-10T23:45:34.679226",
-    "last_seen": "2026-05-10T23:46:55.207125",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "577989000": {
-    "mmsi": "577989000",
-    "first_seen": "2026-05-10T23:45:34.679523",
-    "last_seen": "2026-05-10T23:46:55.207661",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "553111888": {
-    "mmsi": "553111888",
-    "first_seen": "2026-05-10T23:45:34.679823",
-    "last_seen": "2026-05-10T23:46:55.208074",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
-  },
-  "256254000": {
-    "mmsi": "256254000",
-    "first_seen": "2026-05-10T23:45:34.680128",
-    "last_seen": "2026-05-10T23:46:55.208441",
-    "event_count": 10,
-    "dark_activity_count": 0,
-    "loitering_count": 1,
-    "rendezvous_count": 0,
-    "watch_zone_entries": 0,
-    "historical_flags": [
-      "Loitering Detected"
-    ],
-    "repeat_offender_score": 20,
-    "offender_status": "NEW"
+    "repeat_offender_score": 870,
+    "offender_status": "PERSISTENT OFFENDER"
   }
 }
