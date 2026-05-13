@@ -232,8 +232,6 @@ export default function App() {
 const [intelSummary, setIntelSummary] = useState(null);
   const [aisGaps, setAisGaps] = useState([]);
   const [priorityTargets, setPriorityTargets] = useState([])
-const [selectedTarget, setSelectedTarget] = useState(null)
-const [selectedTimeline, setSelectedTimeline] = useState([])
   const [alerts, setAlerts] = useState([]);
   const [routeIntel, setRouteIntel] = useState([]);
   const [loiterStatus, setLoiterStatus] = useState({ total_monitored: 0, loitering: [] });

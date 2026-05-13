@@ -2,11 +2,11 @@ def calculate_fusion_score(vessel, alerts):
 
     score = 0
     reasons = []
+    counted_types = set()
 
     mmsi = str(vessel.get("mmsi", ""))
 
-    base_risk = vessel.get("risk", 0)
-
+    base_risk = vessel.get("risk", 0) or 0
     score += int(base_risk)
 
     if base_risk:
@@ -20,6 +20,11 @@ def calculate_fusion_score(vessel, alerts):
             continue
 
         alert_type = alert.get("type", "")
+
+        if alert_type in counted_types:
+            continue
+
+        counted_types.add(alert_type)
 
         if alert_type == "DARK_ACTIVITY":
             score += 30
@@ -70,10 +75,8 @@ def process_fusion_scores(vessels, alerts):
     for vessel in vessels:
         results.append(calculate_fusion_score(vessel, alerts))
 
-    results = sorted(
+    return sorted(
         results,
         key=lambda x: x.get("fusion_score", 0),
         reverse=True
     )
-
-    return results

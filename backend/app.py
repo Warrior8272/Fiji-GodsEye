@@ -16,6 +16,7 @@ from repeat_offender import process_repeat_offenders
 from vessel_timeline import update_vessel_timeline, get_vessel_timeline
 from route_anomaly import process_route_anomalies
 from fusion_score import process_fusion_scores
+from priority_targets import build_priority_targets
 from flask import Flask, jsonify, jsonify, request
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 import time
@@ -1057,6 +1058,27 @@ def test_cross_zone():
 @app.route("/api/vessel-timeline/<mmsi>")
 def vessel_timeline_api(mmsi):
     return jsonify(get_vessel_timeline(mmsi))
+
+
+@app.route("/api/priority-targets")
+def priority_targets_api():
+
+    try:
+
+        vessels = list_vessels()
+
+        alerts = generate_alerts(vessels)
+
+        fusion_scores = process_fusion_scores(vessels, alerts)
+
+        return jsonify(build_priority_targets(fusion_scores))
+
+    except Exception as e:
+
+        return jsonify({
+            "error": "Priority target generation failed",
+            "details": str(e)
+        }), 500
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
