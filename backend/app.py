@@ -15,6 +15,7 @@ from dark_activity import process_dark_activity
 from repeat_offender import process_repeat_offenders
 from vessel_timeline import update_vessel_timeline, get_vessel_timeline
 from route_anomaly import process_route_anomalies
+from fusion_score import process_fusion_scores
 from flask import Flask, jsonify, jsonify, request
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 import time
