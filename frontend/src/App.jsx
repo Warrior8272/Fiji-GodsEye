@@ -225,6 +225,10 @@ function MiniStat({ label, value }) {
 export default function App() {
   const [selectedVessel, setSelectedVessel] = useState(null);
   const [vesselProfile, setVesselProfile] = useState(null);
+  const [validationStatus, setValidationStatus] = useState("Pending");
+  const [analystNote, setAnalystNote] = useState("");
+  const [validationSaved, setValidationSaved] = useState(false);
+  const [isEditingNote, setIsEditingNote] = useState(false);
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
 
@@ -416,6 +420,25 @@ const [opacity, setOpacity] = useState(0.6);
   }, [selected, selectedType]);
 
   useEffect(() => {
+    if (!vesselProfile || vesselProfile.error) return;
+
+    const key = `nayadra_validation_${vesselProfile.mmsi || vesselProfile.name || "unknown"}`;
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || "{}");
+      setValidationStatus(saved.status || "Pending");
+      setAnalystNote(saved.note || "");
+      setValidationSaved(false);
+    } catch (e) {
+      setValidationStatus("Pending");
+      setAnalystNote("");
+      setValidationSaved(false);
+    }
+  }, [vesselProfile]);
+
+
+
+  useEffect(() => {
 
   fetch("http://127.0.0.1:5000/api/intel-summary")
     .then(res => res.json())
@@ -468,7 +491,7 @@ const [opacity, setOpacity] = useState(0.6);
           setVessels(enrichedParsed);
           setVesselError("");
 
-          if (selected && selectedType === "vessel") {
+          if (selected && selectedType === "vessel" && !isEditingNote) {
             const updated = parsed.find((v) => v.id === selected.id);
             if (updated) {
               setSelected(updated);
@@ -1383,11 +1406,113 @@ const [opacity, setOpacity] = useState(0.6);
                     </div>
 
                     <div style={{
-                      marginTop: "8px",
-                      fontSize: "12px",
-                      color: "#facc15"
+                      marginTop: "10px",
+                      padding: "8px",
+                      borderRadius: "8px",
+                      background: "#020617",
+                      border: "1px solid #334155"
                     }}>
-                      Status: Manual validation pending
+                      <div style={{ fontWeight: "bold", color: "#facc15", marginBottom: "6px" }}>
+                        Analyst Validation
+                      </div>
+
+                      <label style={{ display: "block", fontSize: "12px", marginBottom: "4px" }}>
+                        Validation Status
+                      </label>
+
+                      <select
+                        value={validationStatus}
+                        onChange={(e) => {
+                          setValidationStatus(e.target.value);
+                          setValidationSaved(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          background: "#0f172a",
+                          color: "white",
+                          border: "1px solid #475569",
+                          borderRadius: "6px",
+                          padding: "6px",
+                          marginBottom: "8px"
+                        }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Mismatch">Mismatch</option>
+                        <option value="Escalated">Escalated</option>
+                      </select>
+
+                      <label style={{ display: "block", fontSize: "12px", marginBottom: "4px" }}>
+                        Analyst Note
+                      </label>
+
+                      <textarea
+                        value={analystNote}
+                        onFocus={() => setIsEditingNote(true)}
+                        onBlur={() => setIsEditingNote(false)}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          setAnalystNote(e.target.value);
+                          setValidationSaved(false);
+                        }}
+                        placeholder="Example: MarineTraffic shows vessel docked, but AISStream position appears stale/offshore."
+                        rows={4}
+                        style={{
+                          width: "100%",
+                          minHeight: "90px",
+                          background: "#0f172a",
+                          color: "white",
+                          border: "1px solid #475569",
+                          borderRadius: "6px",
+                          padding: "8px",
+                          resize: "vertical",
+                          pointerEvents: "auto",
+                          userSelect: "text",
+                          boxSizing: "border-box"
+                        }}
+                      />
+
+                      <button
+                        onClick={() => {
+                          const key = `nayadra_validation_${vesselProfile.mmsi || vesselProfile.name || "unknown"}`;
+                          localStorage.setItem(key, JSON.stringify({
+                            status: validationStatus,
+                            note: analystNote,
+                            saved_at: new Date().toISOString(),
+                            vessel: vesselProfile.name || "Unknown",
+                            mmsi: vesselProfile.mmsi || "Unknown"
+                          }));
+                          setValidationSaved(true);
+                        }}
+                        style={{
+                          marginTop: "8px",
+                          width: "100%",
+                          background: "#0369a1",
+                          color: "white",
+                          border: "1px solid #38bdf8",
+                          borderRadius: "6px",
+                          padding: "7px",
+                          cursor: "pointer",
+                          fontWeight: "bold"
+                        }}
+                      >
+                        Save Validation Note
+                      </button>
+
+                      <div style={{
+                        marginTop: "8px",
+                        fontSize: "12px",
+                        color:
+                          validationStatus === "Escalated" ? "#f87171" :
+                          validationStatus === "Mismatch" ? "#fb923c" :
+                          validationStatus === "Confirmed" ? "#4ade80" :
+                          "#facc15"
+                      }}>
+                        Status: {validationStatus}
+                        {validationSaved ? " — saved" : ""}
+                      </div>
                     </div>
                   </div>
 
