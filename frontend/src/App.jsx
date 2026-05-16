@@ -1329,6 +1329,68 @@ const [opacity, setOpacity] = useState(0.6);
                       : "None"
                   }</div>
 
+                  <div style={{
+                    marginTop: "12px",
+                    padding: "10px",
+                    borderRadius: "10px",
+                    background: "#0f172a",
+                    border: "1px solid #64748b"
+                  }}>
+                    <h4 style={{ margin: "0 0 8px 0", color: "#93c5fd" }}>
+                      🌐 External Validation
+                    </h4>
+
+                    <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "8px" }}>
+                      Use these sources to manually validate vessel identity, current position, and possible AIS mismatch.
+                    </div>
+
+                    <div style={{ display: "grid", gap: "6px" }}>
+                      <a
+                        href={`https://www.marinetraffic.com/en/ais/index/search/all?keyword=${encodeURIComponent(vesselProfile.mmsi || vesselProfile.name || "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#38bdf8" }}
+                      >
+                        Open MarineTraffic search
+                      </a>
+
+                      <a
+                        href={`https://www.vesselfinder.com/vessels/details/${encodeURIComponent(vesselProfile.mmsi || "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#38bdf8" }}
+                      >
+                        Open VesselFinder MMSI search
+                      </a>
+
+                      <a
+                        href={`https://www.myshiptracking.com/vessels?name=${encodeURIComponent(vesselProfile.name || vesselProfile.mmsi || "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#38bdf8" }}
+                      >
+                        Open MyShipTracking search
+                      </a>
+
+                      <a
+                        href="https://globalfishingwatch.org/map/"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#38bdf8" }}
+                      >
+                        Open Global Fishing Watch map
+                      </a>
+                    </div>
+
+                    <div style={{
+                      marginTop: "8px",
+                      fontSize: "12px",
+                      color: "#facc15"
+                    }}>
+                      Status: Manual validation pending
+                    </div>
+                  </div>
+
                   <div style={{ opacity: 0.75, marginTop: "6px" }}>
                     Source: {vesselProfile.source || "Local intelligence engine"}
                   </div>
