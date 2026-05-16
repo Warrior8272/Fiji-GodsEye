@@ -229,6 +229,7 @@ export default function App() {
   const [analystNote, setAnalystNote] = useState("");
   const [validationSaved, setValidationSaved] = useState(false);
   const [isEditingNote, setIsEditingNote] = useState(false);
+  const [caseNote, setCaseNote] = useState("");
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
 
@@ -1513,6 +1514,81 @@ const [opacity, setOpacity] = useState(0.6);
                         Status: {validationStatus}
                         {validationSaved ? " — saved" : ""}
                       </div>
+
+                      <button
+                        onClick={() => {
+                          const note = `NAYADRA Vessel Intelligence Case Note
+
+Target: ${vesselProfile.name || "Unknown"}
+MMSI: ${vesselProfile.mmsi || "Unknown"}
+Zone: ${vesselProfile.zone || "Unknown"}
+Position: ${vesselProfile.lat || "N/A"}, ${vesselProfile.lon || "N/A"}
+Speed: ${vesselProfile.speed ?? "N/A"} kn
+Course: ${vesselProfile.course ?? "N/A"}
+
+Risk Level: ${vesselProfile.risk_level || "Unknown"}
+Risk Score: ${vesselProfile.risk_score ?? 0}
+Track Status: ${vesselProfile.track_status || "Unknown"}
+Flags: ${(vesselProfile.flags || []).join(", ") || "None"}
+
+External Validation Status: ${validationStatus}
+
+Analyst Note:
+${analystNote || "No analyst note entered."}
+
+Recommended Action:
+${vesselProfile.recommendation || "Review vessel activity."}
+
+Source:
+${vesselProfile.source || "NAYADRA local intelligence engine"}
+
+Generated:
+${new Date().toISOString()}`;
+
+                          setCaseNote(note);
+                          try {
+                            navigator.clipboard.writeText(note);
+                          } catch (e) {
+                            console.error("Clipboard copy failed:", e);
+                          }
+                        }}
+                        style={{
+                          marginTop: "8px",
+                          width: "100%",
+                          background: "#14532d",
+                          color: "white",
+                          border: "1px solid #22c55e",
+                          borderRadius: "6px",
+                          padding: "7px",
+                          cursor: "pointer",
+                          fontWeight: "bold"
+                        }}
+                      >
+                        Generate Case Note
+                      </button>
+
+                      {caseNote && (
+                        <textarea
+                          value={caseNote}
+                          readOnly
+                          rows={10}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.target.select();
+                          }}
+                          style={{
+                            marginTop: "8px",
+                            width: "100%",
+                            background: "#020617",
+                            color: "#e5e7eb",
+                            border: "1px solid #22c55e",
+                            borderRadius: "6px",
+                            padding: "8px",
+                            fontSize: "12px",
+                            boxSizing: "border-box"
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
 
