@@ -400,7 +400,7 @@ const [opacity, setOpacity] = useState(0.6);
           setNetworkData({ zones: [], connections: [], events: [] });
         });
 
-      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi || selected.MMSI || selected.id || selected.name}`)
         .then((res) => res.json())
         .then((data) => setVesselProfile(data))
         .catch((err) => {
@@ -512,7 +512,7 @@ const [opacity, setOpacity] = useState(0.6);
           setNetworkData({ zones: [], connections: [], events: [] });
         });
 
-      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi || selected.MMSI || selected.id || selected.name}`)
         .then((res) => res.json())
         .then((data) => setVesselProfile(data))
         .catch((err) => {
@@ -581,7 +581,7 @@ const [opacity, setOpacity] = useState(0.6);
           setNetworkData({ zones: [], connections: [], events: [] });
         });
 
-      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi || selected.MMSI || selected.id || selected.name}`)
         .then((res) => res.json())
         .then((data) => setVesselProfile(data))
         .catch((err) => {
@@ -772,7 +772,7 @@ const [opacity, setOpacity] = useState(0.6);
           setNetworkData({ zones: [], connections: [], events: [] });
         });
 
-      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi || selected.MMSI || selected.id || selected.name}`)
         .then((res) => res.json())
         .then((data) => setVesselProfile(data))
         .catch((err) => {
@@ -823,7 +823,7 @@ const [opacity, setOpacity] = useState(0.6);
           setNetworkData({ zones: [], connections: [], events: [] });
         });
 
-      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi}`)
+      fetch(`http://127.0.0.1:5000/api/vessel-profile?token=gods_eye_pacific_admin_2026&mmsi=${selected.mmsi || selected.MMSI || selected.id || selected.name}`)
         .then((res) => res.json())
         .then((data) => setVesselProfile(data))
         .catch((err) => {
@@ -1269,6 +1269,74 @@ const [opacity, setOpacity] = useState(0.6);
         }}
       >
         <h2 style={{ marginTop: 0 }}>🧠 Intelligence Panel</h2>
+
+          {selected && selectedType === "vessel" && (
+            <div style={{
+              background: "#020617",
+              border: "1px solid #38bdf8",
+              borderRadius: "12px",
+              padding: "12px",
+              marginBottom: "14px",
+              boxShadow: "0 0 18px rgba(56,189,248,0.18)",
+              fontSize: "13px"
+            }}>
+              <h3 style={{ marginTop: 0, color: "#38bdf8" }}>🎯 Target Vessel Intelligence Profile</h3>
+
+              {!vesselProfile && <div style={{ opacity: 0.8 }}>Loading vessel profile...</div>}
+
+              {vesselProfile && vesselProfile.error && (
+                <div style={{
+                  background: "#451a03",
+                  border: "1px solid #f97316",
+                  borderRadius: "8px",
+                  padding: "8px",
+                  color: "#fed7aa"
+                }}>
+                  <b>Profile status:</b> {vesselProfile.message || vesselProfile.error}
+                </div>
+              )}
+
+              {vesselProfile && !vesselProfile.error && (
+                <>
+                  <div><b>Name:</b> {vesselProfile.name || selected.name || selected.shipname || "Unknown"}</div>
+                  <div><b>MMSI:</b> {vesselProfile.mmsi || selected.mmsi || "Unknown"}</div>
+                  <div><b>Zone:</b> {vesselProfile.zone || selected.zone || "Unknown"}</div>
+                  <div><b>Speed:</b> {vesselProfile.speed ?? selected.speed ?? 0} kn</div>
+                  <div><b>Course:</b> {vesselProfile.course ?? selected.course ?? selected.heading ?? "Unknown"}</div>
+
+                  <div style={{
+                    marginTop: "10px",
+                    padding: "10px",
+                    borderRadius: "10px",
+                    background:
+                      String(vesselProfile.risk_level || "").toLowerCase() === "high" ? "#7f1d1d" :
+                      String(vesselProfile.risk_level || "").toLowerCase() === "medium" ? "#78350f" :
+                      "#064e3b",
+                    border: "1px solid rgba(255,255,255,0.18)"
+                  }}>
+                    <div><b>Risk Level:</b> {vesselProfile.risk_level || "Unknown"}</div>
+                    <div><b>Risk Score:</b> {vesselProfile.risk_score ?? 0}</div>
+                    <div><b>Track Status:</b> {vesselProfile.track_status || "Unknown"}</div>
+                  </div>
+
+                  <div style={{ marginTop: "10px" }}>
+                    <b>Recommendation:</b> {vesselProfile.recommendation || "Review vessel activity"}
+                  </div>
+
+                  <div><b>Flags:</b> {
+                    Array.isArray(vesselProfile.flags) && vesselProfile.flags.length
+                      ? vesselProfile.flags.join(", ")
+                      : "None"
+                  }</div>
+
+                  <div style={{ opacity: 0.75, marginTop: "6px" }}>
+                    Source: {vesselProfile.source || "Local intelligence engine"}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
 
         <div style={{ marginBottom: "16px", fontSize: "14px", opacity: 0.9 }}>
           <div>Vessels: {loadingVessels ? "Loading..." : visibleVessels.length}</div>

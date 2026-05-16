@@ -1080,6 +1080,174 @@ def priority_targets_api():
             "details": str(e)
         }), 500
 
+
+
+@app.route("/api/vessel-profile")
+def vessel_profile():
+    token = request.args.get("token", "")
+    mmsi = request.args.get("mmsi", "")
+
+    if token != "gods_eye_pacific_admin_2026":
+        return jsonify({
+            "error": "unauthorized",
+            "message": "Invalid or missing token"
+        }), 401
+
+    if not mmsi:
+        return jsonify({
+            "error": "missing_mmsi",
+            "message": "Provide mmsi parameter"
+        }), 400
+
+    import json
+    import os
+    from datetime import datetime
+
+    vessels = []
+
+    possible_files = [
+        "ais_live.json",
+        "data/ais_live.json",
+        "./ais_live.json",
+        "./data/ais_live.json"
+    ]
+
+    for f in possible_files:
+        try:
+            if os.path.exists(f):
+                with open(f, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+
+                if isinstance(data, list):
+                    vessels = data
+                elif isinstance(data, dict):
+                    vessels = data.get("vessels", data.get("contacts", data.get("data", [])))
+
+                if vessels:
+                    break
+        except Exception:
+            pass
+
+    target = None
+
+    # First search local/raw vessel list
+    for v in vessels:
+        if (
+            str(v.get("mmsi", "")) == str(mmsi)
+            or str(v.get("id", "")) == str(mmsi)
+            or str(v.get("id", "")).replace("ais:", "") == str(mmsi).replace("ais:", "")
+            or str(v.get("name", "")).strip().lower() == str(mmsi).strip().lower()
+        ):
+            target = v
+            break
+
+    # Fallback: search the same enriched source used by /api/vessels
+    if not target:
+        try:
+            with app.test_client() as client:
+                resp = client.get("/api/vessels")
+                enriched = resp.get_json() or []
+            for v in enriched:
+                if (
+                    str(v.get("mmsi", "")) == str(mmsi)
+                    or str(v.get("id", "")) == str(mmsi)
+                    or str(v.get("id", "")).replace("ais:", "") == str(mmsi).replace("ais:", "")
+                    or str(v.get("name", "")).strip().lower() == str(mmsi).strip().lower()
+                ):
+                    target = v
+                    break
+            vessels = enriched
+        except Exception:
+            pass
+
+    if not target:
+        return jsonify({
+            "error": "not_found",
+            "mmsi": mmsi,
+            "message": "Vessel not found in current AIS feed",
+            "total_vessels_checked": len(vessels)
+        }), 404
+
+    flags = target.get("flags", [])
+    if not isinstance(flags, list):
+        flags = [str(flags)]
+
+    # -----------------------------
+    # Enriched vessel risk profiling
+    # -----------------------------
+    try:
+        speed_val = float(target.get("speed", target.get("sog", 0)) or 0)
+    except Exception:
+        speed_val = 0
+
+    try:
+        age_val = target.get("age_hours", target.get("last_seen_age_hours", None))
+        age_val = float(age_val) if age_val is not None else None
+    except Exception:
+        age_val = None
+
+    risk_score_calc = int(target.get("risk_score", target.get("threat_score", target.get("risk", 0))) or 0)
+    risk_level_calc = target.get("risk_level", target.get("risk", "Unknown"))
+    track_status_calc = target.get("track_status", "STALE TRACK" if target.get("last_seen_age_hours") else "Unknown")
+    recommendation_calc = target.get("recommendation", target.get("assessment", "Review vessel activity"))
+
+    if speed_val <= 1:
+        if "low_speed_or_stationary" not in flags:
+            flags.append("low_speed_or_stationary")
+        risk_score_calc += 15
+        if track_status_calc == "Unknown":
+            track_status_calc = "SLOW / STATIONARY"
+        recommendation_calc = "Review vessel activity / possible loitering"
+
+    if age_val is not None and age_val >= 6:
+        if "dark_vessel_timer_triggered" not in flags:
+            flags.append("dark_vessel_timer_triggered")
+        risk_score_calc += 40
+        track_status_calc = "DARK / AIS LOST"
+        recommendation_calc = "Investigate AIS loss / possible dark activity"
+
+    if risk_score_calc >= 70:
+        risk_level_calc = "High"
+    elif risk_score_calc >= 40:
+        risk_level_calc = "Medium"
+    elif risk_score_calc > 0:
+        risk_level_calc = "Low"
+    elif risk_level_calc == "Unknown":
+        risk_level_calc = "Low"
+
+    profile = {
+        "mmsi": target.get("mmsi"),
+        "name": target.get("name", target.get("shipname", target.get("ship_name", "UNKNOWN"))),
+        "lat": target.get("lat"),
+        "lon": target.get("lon"),
+        "speed": speed_val,
+        "course": target.get("course", target.get("cog")),
+        "zone": target.get("zone", target.get("zone_name", target.get("zone_country", "Unknown"))),
+        "risk_level": risk_level_calc,
+        "risk_score": risk_score_calc,
+        "track_status": track_status_calc,
+        "recommendation": recommendation_calc,
+        "flags": flags,
+        "age_hours": age_val,
+        "source": "AIS live feed / NAYADRA pilot intelligence engine",
+        "linked_cases": [],
+        "timeline_events": [
+            {
+                "event_type": "VESSEL_PROFILE_CREATED",
+                "details": "Profile generated from current AIS feed",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        ],
+        "risk_summary": {
+            "linked_case_count": 0,
+            "flags_count": len(flags),
+            "current_status": track_status_calc
+        }
+    }
+
+    return jsonify(profile)
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
 
@@ -1182,4 +1350,10 @@ def get_raw_vessels():
         data = []
 
     return jsonify(data)
+
+
+# ============================================================
+# NAYADRA / GOD'S EYE - Vessel Profile Endpoint
+# Safe endpoint for selected vessel intelligence profile
+# ============================================================
 
