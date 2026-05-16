@@ -1485,7 +1485,33 @@ const [opacity, setOpacity] = useState(0.6);
                             vessel: vesselProfile.name || "Unknown",
                             mmsi: vesselProfile.mmsi || "Unknown"
                           }));
-                          setValidationSaved(true);
+
+                          fetch("http://127.0.0.1:5000/api/case-notes", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              token: "gods_eye_pacific_admin_2026",
+                              name: vesselProfile.name || "Unknown",
+                              mmsi: vesselProfile.mmsi || "Unknown",
+                              zone: vesselProfile.zone || "Unknown",
+                              risk_level: vesselProfile.risk_level || "Unknown",
+                              risk_score: vesselProfile.risk_score ?? 0,
+                              track_status: vesselProfile.track_status || "Unknown",
+                              validation_status: validationStatus,
+                              analyst_note: analystNote,
+                              recommendation: vesselProfile.recommendation || "Review vessel activity",
+                              source: vesselProfile.source || "NAYADRA pilot intelligence engine"
+                            })
+                          })
+                            .then((r) => r.json())
+                            .then((data) => {
+                              console.log("Backend case note saved:", data);
+                              setValidationSaved(true);
+                            })
+                            .catch((err) => {
+                              console.error("Backend case note save failed:", err);
+                              setValidationSaved(true);
+                            });
                         }}
                         style={{
                           marginTop: "8px",

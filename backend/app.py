@@ -1248,6 +1248,78 @@ def vessel_profile():
     return jsonify(profile)
 
 
+
+
+CASE_NOTES_FILE = "case_notes.json"
+
+def load_case_notes():
+    import json, os
+    if not os.path.exists(CASE_NOTES_FILE):
+        return []
+    try:
+        with open(CASE_NOTES_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_case_notes(notes):
+    import json
+    with open(CASE_NOTES_FILE, "w") as f:
+        json.dump(notes, f, indent=2)
+
+@app.route("/api/case-notes", methods=["GET"])
+def get_case_notes():
+    token = request.args.get("token", "")
+    if token != "gods_eye_pacific_admin_2026":
+        return jsonify({"error": "unauthorized"}), 401
+
+    mmsi = request.args.get("mmsi", "")
+    notes = load_case_notes()
+
+    if mmsi:
+        notes = [n for n in notes if str(n.get("mmsi", "")) == str(mmsi)]
+
+    return jsonify({
+        "count": len(notes),
+        "case_notes": notes
+    })
+
+@app.route("/api/case-notes", methods=["POST"])
+def create_case_note():
+    from datetime import datetime, timezone
+
+    data = request.get_json(silent=True) or {}
+    token = data.get("token", "")
+
+    if token != "gods_eye_pacific_admin_2026":
+        return jsonify({"error": "unauthorized"}), 401
+
+    notes = load_case_notes()
+
+    note = {
+        "case_id": f"CASE-{len(notes)+1:04d}",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "name": data.get("name", "Unknown"),
+        "mmsi": data.get("mmsi", "Unknown"),
+        "zone": data.get("zone", "Unknown"),
+        "risk_level": data.get("risk_level", "Unknown"),
+        "risk_score": data.get("risk_score", 0),
+        "track_status": data.get("track_status", "Unknown"),
+        "validation_status": data.get("validation_status", "Pending"),
+        "analyst_note": data.get("analyst_note", ""),
+        "recommendation": data.get("recommendation", "Review vessel activity"),
+        "source": data.get("source", "NAYADRA pilot intelligence engine")
+    }
+
+    notes.append(note)
+    save_case_notes(notes)
+
+    return jsonify({
+        "saved": True,
+        "case_note": note
+    })
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
 

@@ -1,0 +1,16 @@
+[
+  {
+    "case_id": "CASE-0001",
+    "created_at": "2026-05-16T21:11:48.021792+00:00",
+    "name": "IMUA",
+    "mmsi": "304887000",
+    "zone": "Fiji Test Zone",
+    "risk_level": "Medium",
+    "risk_score": 65,
+    "track_status": "DARK / AIS LOST",
+    "validation_status": "Mismatch",
+    "analyst_note": "Case elevated",
+    "recommendation": "Investigate AIS loss / possible dark activity",
+    "source": "AIS live feed / NAYADRA pilot intelligence engine"
+  }
+]
