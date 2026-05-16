@@ -230,6 +230,7 @@ export default function App() {
   const [validationSaved, setValidationSaved] = useState(false);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [caseNote, setCaseNote] = useState("");
+  const [caseHistory, setCaseHistory] = useState([]);
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
 
@@ -419,6 +420,23 @@ const [opacity, setOpacity] = useState(0.6);
       setVesselProfile(null);
     }
   }, [selected, selectedType]);
+
+  useEffect(() => {
+    if (!vesselProfile || vesselProfile.error) {
+      setCaseHistory([]);
+      return;
+    }
+
+    fetch(`http://127.0.0.1:5000/api/case-notes?token=gods_eye_pacific_admin_2026&mmsi=${vesselProfile.mmsi}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setCaseHistory(data.case_notes || []);
+      })
+      .catch((err) => {
+        console.error("Case history fetch error:", err);
+        setCaseHistory([]);
+      });
+  }, [vesselProfile]);
 
   useEffect(() => {
     if (!vesselProfile || vesselProfile.error) return;
@@ -1749,6 +1767,47 @@ ${new Date().toISOString()}`;
 
                   <div style={{ opacity: 0.75, marginTop: "6px" }}>
                     Source: {vesselProfile.source || "Local intelligence engine"}
+                  </div>
+
+                  <div style={{
+                    marginTop: "12px",
+                    padding: "10px",
+                    borderRadius: "10px",
+                    background: "#111827",
+                    border: "1px solid #818cf8"
+                  }}>
+                    <h4 style={{ margin: "0 0 8px 0", color: "#a5b4fc" }}>
+                      📁 Case History
+                    </h4>
+
+                    {caseHistory.length === 0 && (
+                      <div style={{ fontSize: "12px", opacity: 0.75 }}>
+                        No saved case notes for this vessel yet.
+                      </div>
+                    )}
+
+                    {caseHistory.slice().reverse().slice(0, 5).map((c, i) => (
+                      <div
+                        key={c.case_id || i}
+                        style={{
+                          background: "#020617",
+                          border: "1px solid #475569",
+                          borderRadius: "8px",
+                          padding: "8px",
+                          marginBottom: "8px",
+                          fontSize: "12px"
+                        }}
+                      >
+                        <b>{c.case_id || "CASE"}</b><br/>
+                        <b>Status:</b> {c.validation_status || "Pending"}<br/>
+                        <b>Risk:</b> {c.risk_level || "Unknown"} / {c.risk_score ?? 0}<br/>
+                        <b>Track:</b> {c.track_status || "Unknown"}<br/>
+                        <b>Saved:</b> {c.created_at || "Unknown"}<br/>
+                        <div style={{ marginTop: "6px", opacity: 0.9 }}>
+                          {c.analyst_note || "No analyst note."}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </>
               )}
