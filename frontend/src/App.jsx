@@ -271,6 +271,7 @@ const [cyberForm, setCyberForm] = useState({
 const [cyberSubmitting, setCyberSubmitting] = useState(false);
 const [cyberFilter, setCyberFilter] = useState("ALL");
 const [cyberSourceFilter, setCyberSourceFilter] = useState("ALL");
+const [cyberFeedHealth, setCyberFeedHealth] = useState(null);
 
 
 
@@ -328,6 +329,25 @@ const [showSentinel, setShowSentinel] = useState(true);
         console.error("Cyber alerts fetch error:", err);
         setCyberThreats({ total: 0, events: [] });
       });
+  }, []);
+
+  useEffect(() => {
+    const fetchHealth = () => {
+      fetch("http://127.0.0.1:5000/api/cyber-feed-health")
+        .then((res) => res.json())
+        .then((data) => setCyberFeedHealth(data))
+        .catch((err) => {
+          console.error("Cyber feed health fetch error:", err);
+          setCyberFeedHealth({
+            status: "ERROR",
+            last_error: "Could not reach cyber feed health endpoint."
+          });
+        });
+    };
+
+    fetchHealth();
+    const timer = setInterval(fetchHealth, 60000);
+    return () => clearInterval(timer);
   }, []);
 
 
@@ -1531,6 +1551,32 @@ const [opacity, setOpacity] = useState(0.6);
           marginBottom: "14px",
           boxShadow: "0 0 14px rgba(0,255,170,0.12)"
         }}>
+          <div style={{
+            border: "1px solid rgba(0,255,170,0.35)",
+            borderRadius: "10px",
+            padding: "10px",
+            marginBottom: "12px",
+            background: "rgba(0,20,25,0.72)"
+          }}>
+            <div style={{ color: "#00ffaa", fontWeight: "bold", marginBottom: "6px" }}>
+              Cyber Feed Health
+            </div>
+            <div style={{ fontSize: "12px", lineHeight: "1.45", color: "#d8f7ff" }}>
+              <div><b>Status:</b> {cyberFeedHealth?.status || "UNKNOWN"}</div>
+              <div><b>Source:</b> {cyberFeedHealth?.source || "OpenPhish scheduled feed"}</div>
+              <div><b>Last Check:</b> {cyberFeedHealth?.last_check_at || "Not checked yet"}</div>
+              <div><b>Last Added:</b> {cyberFeedHealth?.last_added ?? "N/A"}</div>
+              <div><b>Last Skipped:</b> {cyberFeedHealth?.last_skipped ?? "N/A"}</div>
+              <div><b>Total Alerts:</b> {cyberFeedHealth?.total_alerts ?? "N/A"}</div>
+              <div><b>Log Exists:</b> {cyberFeedHealth?.log_exists ? "YES" : "NO"}</div>
+              {cyberFeedHealth?.last_error && (
+                <div style={{ color: "#ff6666", marginTop: "6px" }}>
+                  <b>Error:</b> {cyberFeedHealth.last_error}
+                </div>
+              )}
+            </div>
+          </div>
+
           <h3 style={{ margin: "0 0 6px 0", color: "#00ffaa" }}>🛡️ Cyber Threat Feed</h3>
           <p style={{ margin: "0 0 10px 0", color: "#9fb7c2", fontSize: "12px" }}>
             Pacific cyber indicators linked to ports, agencies, scams and maritime activity.

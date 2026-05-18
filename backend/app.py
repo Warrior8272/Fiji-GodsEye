@@ -1027,6 +1027,44 @@ def generate_report():
     return send_file(report_path, as_attachment=True)
 
 
+
+
+@app.route("/api/cyber-feed-health")
+def cyber_feed_health():
+    import os
+    import json
+    from datetime import datetime, timezone
+
+    health_path = os.path.join(os.path.dirname(__file__), "cyber_feed_health.json")
+    log_path = os.path.join(os.path.dirname(__file__), "cyber_feed_scheduler.log")
+
+    payload = {
+        "status": "UNKNOWN",
+        "last_check_at": None,
+        "last_added": None,
+        "last_skipped": None,
+        "total_alerts": None,
+        "last_error": None,
+        "log_exists": os.path.exists(log_path),
+        "source": "OpenPhish scheduled feed"
+    }
+
+    try:
+        if os.path.exists(health_path):
+            with open(health_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    payload.update(data)
+        else:
+            payload["status"] = "NO_HEALTH_FILE"
+            payload["last_error"] = "Scheduler has not written health file yet."
+    except Exception as e:
+        payload["status"] = "ERROR"
+        payload["last_error"] = str(e)
+
+    return jsonify(payload)
+
+
 @app.route("/api/send-alerts")
 def send_alerts():
     import json
