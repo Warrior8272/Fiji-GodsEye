@@ -335,6 +335,54 @@ const [opacity, setOpacity] = useState(0.6);
   const [highRiskOnly, setHighRiskOnly] = useState(false);
 
 
+
+  const updateCyberAlertStatus = async (alertId, newStatus) => {
+    try {
+      const res = await fetch("http://127.0.0.1:5000/api/update-cyber-alert-status?token=gods_eye_pacific_admin_2026", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: alertId,
+          verification_status: newStatus,
+          analyst_note: `Updated from dashboard to ${newStatus}`
+        })
+      });
+
+      const result = await res.json();
+
+      if (!result.ok) {
+        alert("Cyber alert status update failed.");
+        return;
+      }
+
+      setCyberThreats((prev) => {
+        const events = (prev?.events || []).map((item) =>
+          item.id === alertId
+            ? {
+                ...item,
+                status: newStatus,
+                verification_status: newStatus,
+                analyst_note: `Updated from dashboard to ${newStatus}`,
+                last_reviewed_at: new Date().toISOString()
+              }
+            : item
+        );
+
+        return {
+          ...prev,
+          total: events.length,
+          events
+        };
+      });
+
+    } catch (err) {
+      console.error("Cyber status update error:", err);
+      alert("Cyber alert status update error.");
+    }
+  };
+
   const generateReport = () => {
     const elevatedVessels = vessels
       .filter((v) => String(v.risk_level || "").toLowerCase() !== "low")
