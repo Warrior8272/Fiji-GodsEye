@@ -18,7 +18,7 @@ from route_anomaly import process_route_anomalies
 from fusion_score import process_fusion_scores
 from priority_targets import build_priority_targets
 from flask import Flask, jsonify, jsonify, request
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Image, Image, Image, Image, Table, TableStyle
 import time
 from ais_gap import detect_gaps
 from threat_fusion import apply_threat_scores
@@ -717,7 +717,7 @@ def generate_report():
     import time
     import os
     from flask import send_file
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Image, Image, Image, Image
     from reportlab.lib.styles import getSampleStyleSheet
 
     ais_path = os.path.join(os.path.dirname(__file__), "ais_live.json")
@@ -814,9 +814,15 @@ def generate_report():
     styles = getSampleStyleSheet()
     content = []
 
+    logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "branding", "nayadra_insignia.png"))
+    if os.path.exists(logo_path):
+        logo = Image(logo_path, width=110, height=110)
+        content.append(logo)
+        content.append(Spacer(1, 8))
+
     content.append(
         Paragraph(
-            "Gods Eye Maritime Intelligence Report",
+            "NAYADRA Maritime-Cyber Intelligence Report",
             styles["Title"]))
     content.append(Spacer(1, 10))
     content.append(Paragraph(f"Generated: {time.ctime()}", styles["Normal"]))
@@ -889,6 +895,104 @@ def generate_report():
         content.append(Spacer(1, 6))
 
     content.append(Spacer(1, 12))
+    content.append(Spacer(1, 12))
+
+    # Phase 17G - Cyber Threat Intelligence Section
+    cyber_path = os.path.join(os.path.dirname(__file__), "cyber_alerts.json")
+    cyber_alerts = []
+
+    try:
+        if os.path.exists(cyber_path):
+            with open(cyber_path, "r", encoding="utf-8") as cf:
+                cyber_data = json.load(cf)
+                if isinstance(cyber_data, list):
+                    cyber_alerts = cyber_data
+    except Exception:
+        cyber_alerts = []
+
+    content.append(Paragraph("Cyber Threat Intelligence", styles["Heading2"]))
+
+    if cyber_alerts:
+        verified_count = len([
+            c for c in cyber_alerts
+            if c.get("verification_status") == "VERIFIED" or c.get("status") == "VERIFIED"
+        ])
+        under_review_count = len([
+            c for c in cyber_alerts
+            if c.get("verification_status") == "UNDER_REVIEW" or c.get("status") == "UNDER_REVIEW"
+        ])
+        high_risk_cyber = len([
+            c for c in cyber_alerts
+            if str(c.get("risk", "")).upper() == "HIGH"
+        ])
+
+        content.append(Paragraph(
+            f"Total Cyber Alerts: {len(cyber_alerts)}<br/>"
+            f"Verified: {verified_count}<br/>"
+            f"Under Review: {under_review_count}<br/>"
+            f"High Risk Cyber Indicators: {high_risk_cyber}",
+            styles["Normal"]
+        ))
+        content.append(Spacer(1, 8))
+
+        for c in cyber_alerts[:5]:
+            content.append(Paragraph(
+                f"<b>{c.get('title', 'Untitled cyber alert')}</b><br/>"
+                f"Type: {c.get('type', 'N/A')} | Risk: {c.get('risk', 'N/A')} | "
+                f"Status: {c.get('verification_status', c.get('status', 'UNVERIFIED'))} | "
+                f"Confidence: {c.get('confidence', 'N/A')}<br/>"
+                f"Target: {c.get('target', 'N/A')} | Zone: {c.get('zone', 'N/A')}<br/>"
+                f"Indicator: {c.get('indicator', 'N/A')}<br/>"
+                f"Observed: {c.get('observed_date', 'N/A')} | Evidence: {c.get('evidence_file', 'N/A')}<br/>"
+                f"Summary: {c.get('summary', 'No summary available.')}<br/>"
+                f"Recommended Action: {c.get('recommended_action', 'Review and verify.')}",
+                styles["Normal"]
+            ))
+            content.append(Spacer(1, 8))
+    else:
+        content.append(Paragraph(
+            "No cyber threat intelligence entries were available at the time of report generation.",
+            styles["Normal"]
+        ))
+
+    content.append(Spacer(1, 12))
+    content.append(Paragraph("Maritime-Cyber Fusion Assessment", styles["Heading2"]))
+
+    fusion_items = []
+    try:
+        for c in cyber_alerts:
+            cyber_risk = str(c.get("risk", "LOW")).upper()
+            cyber_target = str(c.get("target", "")).lower()
+            cyber_zone = str(c.get("zone", "")).lower()
+
+            if (
+                cyber_risk in ["HIGH", "MEDIUM"]
+                and len(vessels) > 0
+                and (
+                    "port" in cyber_zone
+                    or "customs" in cyber_target
+                    or "maritime" in cyber_target
+                    or "border" in cyber_target
+                )
+            ):
+                fusion_items.append(c)
+    except Exception:
+        fusion_items = []
+
+    if fusion_items:
+        content.append(Paragraph(
+            f"{len(fusion_items)} cyber indicators are linked to maritime, port, customs, border, or agency-related targets while AIS vessel activity is active in the operational picture. "
+            f"This does not confirm coordination, but it increases the need for cross-domain monitoring, evidence preservation, and verification before escalation.",
+            styles["Normal"]
+        ))
+    else:
+        content.append(Paragraph(
+            "No maritime-cyber fusion indicators were detected at the time of report generation.",
+            styles["Normal"]
+        ))
+
+    content.append(Spacer(1, 12))
+
     content.append(
         Paragraph(
             "Operational Recommendations",
@@ -1320,6 +1424,230 @@ def create_case_note():
     })
 
 
+
+
+@app.route("/api/cyber-alerts")
+def api_cyber_alerts():
+    import json
+    from pathlib import Path
+
+    cyber_file = Path(__file__).with_name("cyber_alerts.json")
+
+    try:
+        if not cyber_file.exists():
+            return jsonify([])
+
+        with cyber_file.open("r", encoding="utf-8") as f:
+            alerts = json.load(f)
+
+        if not isinstance(alerts, list):
+            return jsonify([])
+
+        risk_order = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
+        alerts = sorted(
+            alerts,
+            key=lambda x: risk_order.get(str(x.get("risk", "")).upper(), 0),
+            reverse=True
+        )
+
+        return jsonify(alerts)
+
+    except Exception as e:
+        return jsonify([
+            {
+                "type": "CYBER_ALERTS_ERROR",
+                "risk": "HIGH",
+                "msg": str(e)
+            }
+        ]), 500
+
+
+
+
+@app.route("/api/maritime-cyber-fusion")
+def api_maritime_cyber_fusion():
+    import json
+    from pathlib import Path
+    from datetime import datetime, timezone
+
+    base = Path(__file__).parent
+    cyber_file = base / "cyber_alerts.json"
+    ais_file = base / "ais_live.json"
+
+    fusion_alerts = []
+
+    try:
+        cyber_alerts = []
+        vessels = []
+
+        if cyber_file.exists():
+            with cyber_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    cyber_alerts = data
+
+        if ais_file.exists():
+            with ais_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    vessels = data
+                elif isinstance(data, dict):
+                    vessels = data.get("vessels", [])
+
+        active_vessel_count = len(vessels)
+
+        for c in cyber_alerts:
+            cyber_risk = str(c.get("risk", "LOW")).upper()
+            zone = c.get("zone", "Unknown Zone")
+
+            if cyber_risk in ["HIGH", "MEDIUM"] and active_vessel_count > 0:
+                fusion_risk = "HIGH" if cyber_risk == "HIGH" else "MEDIUM"
+
+                fusion_alerts.append({
+                    "id": f"FUSION-{c.get('id', 'UNKNOWN')}",
+                    "type": "MARITIME_CYBER_FUSION",
+                    "risk": fusion_risk,
+                    "zone": zone,
+                    "cyber_title": c.get("title", "Cyber alert"),
+                    "cyber_type": c.get("type", "CYBER_ALERT"),
+                    "cyber_target": c.get("target", "Unknown target"),
+                    "maritime_context": f"{active_vessel_count} AIS contacts currently visible in the operational picture.",
+                    "assessment": "Cyber activity is linked to a maritime or port-related zone while vessel activity is active. This may indicate opportunistic targeting, reconnaissance, fraud, or wider maritime-domain risk.",
+                    "recommended_action": "Correlate cyber indicator with port activity, preserve evidence, verify affected organisations, and monitor vessels/alerts in the same zone.",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+
+        return jsonify({
+            "total": len(fusion_alerts),
+            "fusion_alerts": fusion_alerts
+        })
+
+    except Exception as e:
+        return jsonify({
+            "total": 0,
+            "fusion_alerts": [],
+            "error": str(e)
+        }), 500
+
+
+
+
+@app.route("/api/add-cyber-alert", methods=["POST"])
+def api_add_cyber_alert():
+    import json
+    from pathlib import Path
+    from datetime import datetime, timezone
+    from flask import request
+
+    token = request.args.get("token", "")
+    if token != "gods_eye_pacific_admin_2026":
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    cyber_file = Path(__file__).with_name("cyber_alerts.json")
+
+    try:
+        payload = request.get_json(force=True) or {}
+
+        existing = []
+        if cyber_file.exists():
+            with cyber_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    existing = data
+
+        new_id = f"CYBER-{len(existing) + 1:04d}"
+
+        alert = {
+            "id": new_id,
+            "status": payload.get("status", "UNVERIFIED"),
+            "confidence": payload.get("confidence", "LOW"),
+            "verification_status": payload.get("verification_status", payload.get("status", "UNVERIFIED")),
+            "observed_date": payload.get("observed_date", ""),
+            "source_url": payload.get("source_url", ""),
+            "evidence_file": payload.get("evidence_file", ""),
+            "analyst_name": payload.get("analyst_name", "NAYADRA Analyst"),
+            "analyst_note": payload.get("analyst_note", ""),
+            "type": payload.get("type", "MANUAL_OSINT"),
+            "title": payload.get("title", "Untitled cyber alert"),
+            "target": payload.get("target", "Unknown target"),
+            "zone": payload.get("zone", "Unknown zone"),
+            "risk": payload.get("risk", "LOW"),
+            "source": payload.get("source", "Manual OSINT"),
+            "indicator": payload.get("indicator", "N/A"),
+            "summary": payload.get("summary", "No summary provided."),
+            "recommended_action": payload.get("recommended_action", "Review and verify."),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+
+        existing.insert(0, alert)
+        cyber_file.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+
+        return jsonify({"ok": True, "added": alert, "total": len(existing)})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+
+@app.route("/api/update-cyber-alert-status", methods=["POST"])
+def api_update_cyber_alert_status():
+    import json
+    from pathlib import Path
+    from datetime import datetime, timezone
+    from flask import request
+
+    token = request.args.get("token", "")
+    if token != "gods_eye_pacific_admin_2026":
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    cyber_file = Path(__file__).with_name("cyber_alerts.json")
+
+    try:
+        payload = request.get_json(force=True) or {}
+        alert_id = payload.get("id")
+        new_status = payload.get("verification_status", "UNDER_REVIEW")
+        note = payload.get("analyst_note", "")
+
+        allowed = ["UNVERIFIED", "UNDER_REVIEW", "VERIFIED", "FALSE_POSITIVE"]
+        if new_status not in allowed:
+            return jsonify({"ok": False, "error": "Invalid status"}), 400
+
+        if not alert_id:
+            return jsonify({"ok": False, "error": "Missing alert id"}), 400
+
+        alerts = []
+        if cyber_file.exists():
+            with cyber_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    alerts = data
+
+        updated = None
+
+        for item in alerts:
+            if item.get("id") == alert_id:
+                item["verification_status"] = new_status
+                item["status"] = new_status
+                item["last_reviewed_at"] = datetime.now(timezone.utc).isoformat()
+
+                if note:
+                    item["analyst_note"] = note
+
+                updated = item
+                break
+
+        if not updated:
+            return jsonify({"ok": False, "error": "Alert not found"}), 404
+
+        cyber_file.write_text(json.dumps(alerts, indent=2), encoding="utf-8")
+
+        return jsonify({"ok": True, "updated": updated})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
 
@@ -1428,4 +1756,3 @@ def get_raw_vessels():
 # NAYADRA / GOD'S EYE - Vessel Profile Endpoint
 # Safe endpoint for selected vessel intelligence profile
 # ============================================================
-

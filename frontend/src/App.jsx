@@ -251,7 +251,42 @@ const [networkData, setNetworkData] = useState({ zones: [], connections: [], eve
   const [operationalReport, setOperationalReport] = useState(null);
   const [feedCoverage, setFeedCoverage] = useState({ total_vessels: 0, coverage: [] });
   const [cyberThreats, setCyberThreats] = useState({ total: 0, events: [] });
+const [cyberForm, setCyberForm] = useState({
+  title: "",
+  type: "MANUAL_OSINT",
+  target: "",
+  zone: "Suva Port",
+  risk: "LOW",
+  indicator: "",
+  summary: "",
+  recommended_action: "",
+  verification_status: "UNVERIFIED",
+  confidence: "LOW",
+  observed_date: "",
+  source_url: "",
+  evidence_file: "",
+  analyst_name: "NAYADRA Analyst",
+  analyst_note: ""
+});
+const [cyberSubmitting, setCyberSubmitting] = useState(false);
+const [cyberFilter, setCyberFilter] = useState("ALL");
+
+
   const [fusionIntel, setFusionIntel] = useState(null);
+
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:5000/api/maritime-cyber-fusion")
+      .then((res) => res.json())
+      .then((data) => {
+        setFusionIntel(data || { total: 0, fusion_alerts: [] });
+      })
+      .catch((err) => {
+        console.error("Maritime-cyber fusion fetch error:", err);
+        setFusionIntel({ total: 0, fusion_alerts: [] });
+      });
+  }, []);
+
   const [satMismatch, setSatMismatch] = useState({ total_mismatches: 0, mismatches: [] });
   const [briefing, setBriefing] = useState(null);
   const [escalationAlerts, setEscalationAlerts] = useState({ total_alerts: 0, alerts: [] });
@@ -275,6 +310,25 @@ const [networkData, setNetworkData] = useState({ zones: [], connections: [], eve
   const [showVessels, setShowVessels] = useState(true);
   const [showAlerts, setShowAlerts] = useState(true);
 const [showSentinel, setShowSentinel] = useState(true);
+
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:5000/api/cyber-alerts")
+      .then((res) => res.json())
+      .then((data) => {
+        const events = Array.isArray(data) ? data : [];
+        setCyberThreats({
+          total: events.length,
+          events: events
+        });
+      })
+      .catch((err) => {
+        console.error("Cyber alerts fetch error:", err);
+        setCyberThreats({ total: 0, events: [] });
+      });
+  }, []);
+
+
 const [opacity, setOpacity] = useState(0.6);
   const [highRiskOnly, setHighRiskOnly] = useState(false);
 
@@ -957,6 +1011,113 @@ const [opacity, setOpacity] = useState(0.6);
     })
     .slice(0, 5);
 
+
+  const submitCyberAlert = async () => {
+    if (!cyberForm.title.trim()) {
+      alert("Add a cyber alert title first.");
+      return;
+    }
+
+    setCyberSubmitting(true);
+
+    try {
+      const res = await fetch("http://127.0.0.1:5000/api/add-cyber-alert?token=gods_eye_pacific_admin_2026", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "UNVERIFIED",
+          confidence: "LOW",
+          type: cyberForm.type,
+          title: cyberForm.title,
+          target: cyberForm.target,
+          zone: cyberForm.zone,
+          risk: cyberForm.risk,
+          indicator: cyberForm.indicator,
+          summary: cyberForm.summary,
+          recommended_action: cyberForm.recommended_action,
+          verification_status: cyberForm.verification_status,
+          confidence: cyberForm.confidence,
+          observed_date: cyberForm.observed_date,
+          source_url: cyberForm.source_url,
+          evidence_file: cyberForm.evidence_file,
+          analyst_name: cyberForm.analyst_name,
+          analyst_note: cyberForm.analyst_note
+        })
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) {
+        alert("Failed to add cyber alert: " + (data.error || "Unknown error"));
+        return;
+      }
+
+      setCyberThreats((prev) => ({
+        total: (prev?.events?.length || 0) + 1,
+        events: [data.added, ...(prev?.events || [])]
+      }));
+
+      setCyberForm({
+        title: "",
+        type: "MANUAL_OSINT",
+        target: "",
+        zone: "Suva Port",
+        risk: "LOW",
+        indicator: "",
+        summary: "",
+        recommended_action: "",
+        verification_status: "UNVERIFIED",
+        confidence: "LOW",
+        observed_date: "",
+        source_url: "",
+        evidence_file: "",
+        analyst_name: "NAYADRA Analyst",
+        analyst_note: ""
+      });
+
+      alert("Cyber alert added.");
+    } catch (err) {
+      console.error("Cyber alert submit error:", err);
+      alert("Cyber alert submit error.");
+    } finally {
+      setCyberSubmitting(false);
+    }
+  };
+
+
+
+  const updateCyberStatus = async (alertId, newStatus) => {
+    try {
+      const res = await fetch("http://127.0.0.1:5000/api/update-cyber-alert-status?token=gods_eye_pacific_admin_2026", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: alertId,
+          verification_status: newStatus,
+          analyst_note: `Status changed to ${newStatus} from dashboard.`
+        })
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) {
+        alert("Status update failed: " + (data.error || "Unknown error"));
+        return;
+      }
+
+      setCyberThreats((prev) => ({
+        total: prev?.total || prev?.events?.length || 0,
+        events: (prev?.events || []).map((item) =>
+          item.id === alertId ? data.updated : item
+        )
+      }));
+    } catch (err) {
+      console.error("Cyber status update error:", err);
+      alert("Cyber status update error.");
+    }
+  };
+
+
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", width: "100%", background: "#0b1020" }}>
       <div style={{ flex: 3, position: "relative" }}>
@@ -1311,6 +1472,278 @@ const [opacity, setOpacity] = useState(0.6);
         }}
       >
         <h2 style={{ marginTop: 0 }}>🧠 Intelligence Panel</h2>
+
+        <div style={{
+          border: "1px solid rgba(0, 255, 170, 0.35)",
+          background: "rgba(0, 20, 30, 0.72)",
+          borderRadius: "12px",
+          padding: "12px",
+          marginBottom: "14px",
+          boxShadow: "0 0 14px rgba(0,255,170,0.12)"
+        }}>
+          <h3 style={{ margin: "0 0 6px 0", color: "#00ffaa" }}>🛡️ Cyber Threat Feed</h3>
+          <p style={{ margin: "0 0 10px 0", color: "#9fb7c2", fontSize: "12px" }}>
+            Pacific cyber indicators linked to ports, agencies, scams and maritime activity.
+          </p>
+
+
+          <div style={{
+            border: "1px solid rgba(0,255,170,0.2)",
+            borderRadius: "10px",
+            padding: "10px",
+            margin: "10px 0",
+            background: "rgba(0,0,0,0.22)"
+          }}>
+            <div style={{ color: "#00ffaa", fontWeight: "bold", marginBottom: "8px" }}>
+              ➕ Add Manual Cyber Alert
+            </div>
+
+            <input
+              placeholder="Title"
+              value={cyberForm.title}
+              onChange={(e) => setCyberForm({ ...cyberForm, title: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+              <select
+                value={cyberForm.type}
+                onChange={(e) => setCyberForm({ ...cyberForm, type: e.target.value })}
+                style={{ flex: 1, padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+              >
+                <option value="MANUAL_OSINT">MANUAL_OSINT</option>
+                <option value="PHISHING_URL">PHISHING_URL</option>
+                <option value="FAKE_SOCIAL_PAGE">FAKE_SOCIAL_PAGE</option>
+                <option value="BREACH_ALERT">BREACH_ALERT</option>
+                <option value="SCAM_REPORT">SCAM_REPORT</option>
+              </select>
+
+              <select
+                value={cyberForm.risk}
+                onChange={(e) => setCyberForm({ ...cyberForm, risk: e.target.value })}
+                style={{ width: "100px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+              >
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+              </select>
+            </div>
+
+            <input
+              placeholder="Target, e.g. Customs / port staff"
+              value={cyberForm.target}
+              onChange={(e) => setCyberForm({ ...cyberForm, target: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <input
+              placeholder="Zone, e.g. Suva Port"
+              value={cyberForm.zone}
+              onChange={(e) => setCyberForm({ ...cyberForm, zone: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <input
+              placeholder="Indicator, URL, domain, page name, email, etc."
+              value={cyberForm.indicator}
+              onChange={(e) => setCyberForm({ ...cyberForm, indicator: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <textarea
+              placeholder="Summary"
+              value={cyberForm.summary}
+              onChange={(e) => setCyberForm({ ...cyberForm, summary: e.target.value })}
+              style={{ width: "100%", height: "55px", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+
+            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+              <select
+                value={cyberForm.verification_status}
+                onChange={(e) => setCyberForm({ ...cyberForm, verification_status: e.target.value })}
+                style={{ flex: 1, padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+              >
+                <option value="UNVERIFIED">UNVERIFIED</option>
+                <option value="UNDER_REVIEW">UNDER_REVIEW</option>
+                <option value="VERIFIED">VERIFIED</option>
+                <option value="FALSE_POSITIVE">FALSE_POSITIVE</option>
+              </select>
+
+              <select
+                value={cyberForm.confidence}
+                onChange={(e) => setCyberForm({ ...cyberForm, confidence: e.target.value })}
+                style={{ width: "110px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+              >
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+              </select>
+            </div>
+
+            <input
+              type="date"
+              value={cyberForm.observed_date}
+              onChange={(e) => setCyberForm({ ...cyberForm, observed_date: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <input
+              placeholder="Source URL"
+              value={cyberForm.source_url}
+              onChange={(e) => setCyberForm({ ...cyberForm, source_url: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <input
+              placeholder="Evidence file name, e.g. screenshot_001.png"
+              value={cyberForm.evidence_file}
+              onChange={(e) => setCyberForm({ ...cyberForm, evidence_file: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <input
+              placeholder="Analyst name"
+              value={cyberForm.analyst_name}
+              onChange={(e) => setCyberForm({ ...cyberForm, analyst_name: e.target.value })}
+              style={{ width: "100%", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <textarea
+              placeholder="Analyst note"
+              value={cyberForm.analyst_note}
+              onChange={(e) => setCyberForm({ ...cyberForm, analyst_note: e.target.value })}
+              style={{ width: "100%", height: "55px", marginBottom: "6px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <textarea
+              placeholder="Recommended action"
+              value={cyberForm.recommended_action}
+              onChange={(e) => setCyberForm({ ...cyberForm, recommended_action: e.target.value })}
+              style={{ width: "100%", height: "55px", marginBottom: "8px", padding: "6px", background: "#061014", color: "#fff", border: "1px solid #135" }}
+            />
+
+            <button
+              onClick={submitCyberAlert}
+              disabled={cyberSubmitting}
+              style={{
+                width: "100%",
+                padding: "8px",
+                background: cyberSubmitting ? "#333" : "#003d2f",
+                color: "#00ffaa",
+                border: "1px solid #00ffaa",
+                borderRadius: "8px",
+                cursor: cyberSubmitting ? "not-allowed" : "pointer"
+              }}
+            >
+              {cyberSubmitting ? "Adding..." : "Add Cyber Alert"}
+            </button>
+          </div>
+
+
+          <div style={{ margin: "8px 0 10px 0" }}>
+            <select
+              value={cyberFilter}
+              onChange={(e) => setCyberFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "7px",
+                background: "#061014",
+                color: "#00ffaa",
+                border: "1px solid rgba(0,255,170,0.5)",
+                borderRadius: "8px"
+              }}
+            >
+              <option value="ALL">ALL CYBER ALERTS</option>
+              <option value="HIGH">HIGH RISK ONLY</option>
+              <option value="VERIFIED">VERIFIED ONLY</option>
+              <option value="UNVERIFIED">UNVERIFIED ONLY</option>
+              <option value="UNDER_REVIEW">UNDER REVIEW ONLY</option>
+              <option value="FALSE_POSITIVE">FALSE POSITIVE ONLY</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: "10px", color: "#ffffff", fontSize: "13px" }}>
+            Total Cyber Alerts: <strong>{cyberThreats?.events?.length ?? cyberThreats?.total ?? 0}</strong><br/>
+            Visible Cyber Alerts: <strong>{
+              (cyberThreats?.events || []).filter((item) => {
+                if (cyberFilter === "ALL") return true;
+                if (cyberFilter === "HIGH") return item.risk === "HIGH";
+                return (item.verification_status || item.status) === cyberFilter;
+              }).length
+            }</strong>
+          </div>
+
+          {(cyberThreats?.events || []).length === 0 ? (
+            <div style={{ color: "#9fb7c2", fontSize: "12px" }}>No cyber alerts loaded.</div>
+          ) : (
+            (cyberThreats?.events || [])
+              .filter((item) => {
+                if (cyberFilter === "ALL") return true;
+                if (cyberFilter === "HIGH") return item.risk === "HIGH";
+                return (item.verification_status || item.status) === cyberFilter;
+              })
+              .slice(0, 8)
+              .map((item, idx) => (
+              <div key={item.id || idx} style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "10px",
+                padding: "10px",
+                marginBottom: "8px",
+                background: "rgba(0,0,0,0.28)"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
+                  <strong style={{ color: "#ffffff", fontSize: "13px" }}>
+                    {item.title || "Untitled cyber alert"}
+                  </strong>
+                  <span style={{
+                    color: item.risk === "HIGH" ? "#ff4d4d" : item.risk === "MEDIUM" ? "#ffcc00" : "#66ff99",
+                    border: "1px solid currentColor",
+                    borderRadius: "999px",
+                    padding: "2px 8px",
+                    fontSize: "11px",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {item.risk || "UNKNOWN"}
+                  </span>
+                </div>
+
+                <div style={{ color: "#9fb7c2", fontSize: "11px", marginTop: "4px" }}>
+                  {item.status || "LIVE"} · {item.type || "CYBER_ALERT"} · Zone: {item.zone || "N/A"} · Target: {item.target || "N/A"}
+                </div>
+
+                <div style={{ color: "#dbeafe", fontSize: "12px", marginTop: "6px" }}>
+                  {item.summary || "No summary available."}
+                </div>
+
+                <div style={{ color: "#ffffff", fontSize: "12px", marginTop: "6px" }}>
+                  <strong>Action:</strong> {item.recommended_action || "Review and verify."}
+                </div>
+
+                <div style={{ marginTop: "8px" }}>
+                  <select
+                    value={item.verification_status || item.status || "UNVERIFIED"}
+                    onChange={(e) => updateCyberStatus(item.id, e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "6px",
+                      background: "#061014",
+                      color: "#00ffaa",
+                      border: "1px solid rgba(0,255,170,0.5)",
+                      borderRadius: "6px"
+                    }}
+                  >
+                    <option value="UNVERIFIED">UNVERIFIED</option>
+                    <option value="UNDER_REVIEW">UNDER_REVIEW</option>
+                    <option value="VERIFIED">VERIFIED</option>
+                    <option value="FALSE_POSITIVE">FALSE_POSITIVE</option>
+                  </select>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
 
           {selected && selectedType === "vessel" && (
             <div style={{
@@ -2132,7 +2565,7 @@ ${new Date().toISOString()}`;
 
           <h4 style={{ color: "#00ffcc", marginTop: "14px" }}>🛡 Cyber Threat Intelligence</h4>
           <div style={{ fontSize: "12px", opacity: 0.85, marginBottom: "6px" }}>
-            Cyber events: {cyberThreats?.total || 0}
+            Cyber events: {cyberThreats?.events?.length ?? cyberThreats?.total ?? 0}
           </div>
           {(cyberThreats?.events || []).slice(0,5).map((c, i) => (
             <div key={i} style={{
