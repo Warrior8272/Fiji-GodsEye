@@ -1,9 +1,55 @@
 #!/usr/bin/env python3
 import json
+import re
 import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
 from urllib.parse import urlparse
+
+# Phase 17M — tighter NAYADRA relevance filtering
+HIGH_RELEVANCE_TERMS = [
+    "fiji", "fijian", "suva", "lautoka", "nadi",
+    "customs", "border", "immigration", "biosecurity",
+    "navy", "police", "government", "gov", "ministry"
+]
+
+MEDIUM_RELEVANCE_TERMS = [
+    "shipping", "maritime", "vessel", "cargo", "freight",
+    "logistics", "seaport", "harbour", "harbor", "portauthority",
+    "port-authority", "port_authority"
+]
+
+WEAK_RELEVANCE_TERMS = [
+    "port"
+]
+
+
+def classify_nayadra_relevance(url_text):
+    """
+    Returns:
+      relevance_label, matched_terms, should_add
+    """
+    t = str(url_text or "").lower()
+
+    high = [x for x in HIGH_RELEVANCE_TERMS if x in t]
+    medium = [x for x in MEDIUM_RELEVANCE_TERMS if x in t]
+    weak = [x for x in WEAK_RELEVANCE_TERMS if re.search(r'(^|[^a-z])' + re.escape(x) + r'([^a-z]|$)', t)]
+
+    matched = high + medium + weak
+
+    if high:
+        return "HIGH_RELEVANCE", matched, True
+
+    if medium:
+        return "MARITIME_REVIEW", matched, True
+
+    # Important: port alone is too weak. Do not add unless combined with stronger context.
+    if weak:
+        return "WEAK_PORT_ONLY", matched, False
+
+    return "NOT_RELEVANT", [], False
+
+
 
 FEED_URL = "https://www.openphish.com/feed.txt"
 CYBER_FILE = Path(__file__).with_name("cyber_alerts.json")
@@ -86,11 +132,18 @@ def main():
     skipped = 0
 
     for url in urls:
-        relevance, hits, risk = classify_relevance(url)
+        relevance, hits, should_add = classify_nayadra_relevance(url)
 
-        if relevance == "NOT_RELEVANT":
+        if not should_add:
             skipped += 1
             continue
+
+        if relevance == "HIGH_RELEVANCE":
+            risk = "HIGH"
+        elif relevance == "MARITIME_REVIEW":
+            risk = "MEDIUM"
+        else:
+            risk = "LOW"
 
         if url in existing_indicators:
             skipped += 1
