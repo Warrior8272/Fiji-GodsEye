@@ -826,6 +826,15 @@ def generate_report():
             styles["Title"]))
     content.append(Spacer(1, 10))
     content.append(Paragraph(f"Generated: {time.ctime()}", styles["Normal"]))
+    content.append(Paragraph(
+        "<b>UNVERIFIED INTELLIGENCE PRODUCT — FOR REVIEW ONLY</b><br/>"
+        "Contains AIS-derived maritime indicators and manually entered cyber OSINT. "
+        "Not for public attribution without independent verification.",
+        styles["Normal"]
+    ))
+    content.append(Spacer(1, 10))
+
+
     content.append(Spacer(1, 10))
     content.append(
         Paragraph(

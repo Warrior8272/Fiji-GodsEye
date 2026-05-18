@@ -1,14 +1,14 @@
 [
   {
     "id": "CYBER-0006",
-    "status": "VERIFIED",
+    "status": "UNDER_REVIEW",
     "confidence": "LOW",
-    "verification_status": "VERIFIED",
+    "verification_status": "UNDER_REVIEW",
     "observed_date": "2026-12-05",
     "source_url": "",
     "evidence_file": "screenshot_recruitment_test.png",
     "analyst_name": "NAYADRA Analyst",
-    "analyst_note": "Status changed to VERIFIED from dashboard.",
+    "analyst_note": "Reclassified from VERIFIED to UNDER_REVIEW because this is a test/unconfirmed OSINT alert and confidence remains LOW.",
     "type": "SCAM_REPORT",
     "title": "Possible fake maritime recruitment scam page",
     "target": "Fiji maritime workers / job seekers",
@@ -19,7 +19,7 @@
     "summary": "Unverified OSINT report of a possible fake recruitment post targeting maritime workers. The post may be collecting personal details from job seekers.",
     "recommended_action": "Preserve screenshots, verify the page history and admin country visibility, check for payment requests, and avoid public attribution until verified.",
     "created_at": "2026-05-18T14:30:35.830395+00:00",
-    "last_reviewed_at": "2026-05-18T14:37:17.448949+00:00"
+    "last_reviewed_at": "2026-05-18T19:39:53.572921+00:00"
   },
   {
     "id": "CYBER-0005",
