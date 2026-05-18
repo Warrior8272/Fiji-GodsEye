@@ -1,5 +1,26 @@
 [
   {
+    "id": "CYBER-0008",
+    "status": "UNVERIFIED",
+    "verification_status": "UNVERIFIED",
+    "confidence": "LOW",
+    "type": "OPENPHISH_FEED",
+    "title": "OpenPhish match requiring review: avanteshipping.com",
+    "target": "Fiji/Pacific maritime or government-related keyword match",
+    "zone": "Cyber / OSINT",
+    "risk": "MEDIUM",
+    "source": "OpenPhish public feed",
+    "indicator": "https://avanteshipping.com/-/easybk-de/",
+    "source_url": "https://www.openphish.com/feed.txt",
+    "evidence_file": "",
+    "observed_date": "2026-05-18",
+    "analyst_name": "NAYADRA Cyber Feed",
+    "analyst_note": "Automatically ingested keyword match. Requires manual verification before escalation.",
+    "summary": "OpenPhish feed URL matched Fiji/Pacific/maritime/government-related keyword filters. This does not confirm targeting and requires analyst review.",
+    "recommended_action": "Do not visit directly. Use safe analysis tools, capture evidence, verify domain context, and classify before reporting.",
+    "created_at": "2026-05-18T19:53:05.796185+00:00"
+  },
+  {
     "id": "CYBER-0006",
     "status": "UNDER_REVIEW",
     "confidence": "LOW",
