@@ -1809,6 +1809,41 @@ const [opacity, setOpacity] = useState(0.6);
                 </div>
 
                 <div style={{ marginTop: "8px" }}>
+                  
+                <details style={{
+                  marginTop: "10px",
+                  border: "1px solid rgba(0,255,170,0.35)",
+                  borderRadius: "8px",
+                  padding: "8px",
+                  background: "rgba(0,20,25,0.65)"
+                }}>
+                  <summary style={{ color: "#00ffaa", cursor: "pointer", fontWeight: "bold" }}>
+                    Evidence Pack
+                  </summary>
+                  <div style={{ marginTop: "8px", fontSize: "12px", lineHeight: "1.45", color: "#d8f7ff" }}>
+                    <div><b>Alert ID:</b> {item.id || "N/A"}</div>
+                    <div><b>Source:</b> {item.source || "N/A"}</div>
+                    <div><b>Type:</b> {item.type || "N/A"}</div>
+                    <div><b>Indicator:</b> {item.indicator || "N/A"}</div>
+                    <div><b>Source URL:</b> {item.source_url || "N/A"}</div>
+                    <div><b>Evidence File:</b> {item.evidence_file || "N/A"}</div>
+                    <div><b>Observed Date:</b> {item.observed_date || "N/A"}</div>
+                    <div><b>Analyst:</b> {item.analyst_name || "NAYADRA Analyst"}</div>
+                    <div><b>Status:</b> {item.verification_status || item.status || "UNVERIFIED"}</div>
+                    <div><b>Last Reviewed:</b> {item.last_reviewed_at || "Not reviewed"}</div>
+                    <div><b>Analyst Note:</b> {item.analyst_note || "No analyst note recorded."}</div>
+                    <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+                      <b>Safe Handling Checklist:</b>
+                      <ul style={{ marginTop: "5px", paddingLeft: "18px" }}>
+                        <li>Do not visit suspicious links directly.</li>
+                        <li>Preserve URL, screenshots, timestamps and source context.</li>
+                        <li>Verify before escalation.</li>
+                        <li>Only mark VERIFIED after independent confirmation.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </details>
+
                   <select
                     value={item.verification_status || item.status || "UNVERIFIED"}
                     onChange={(e) => updateCyberStatus(item.id, e.target.value)}

@@ -954,7 +954,16 @@ def generate_report():
                 f"Indicator: {c.get('indicator', 'N/A')}<br/>"
                 f"Observed: {c.get('observed_date', 'N/A')} | Evidence: {c.get('evidence_file', 'N/A')}<br/>"
                 f"Summary: {c.get('summary', 'No summary available.')}<br/>"
-                f"Recommended Action: {c.get('recommended_action', 'Review and verify.')}",
+                f"Recommended Action: {c.get('recommended_action', 'Review and verify.')}<br/>"
+                f"<b>Evidence Pack:</b><br/>"
+                f"Alert ID: {c.get('id', 'N/A')}<br/>"
+                f"Source URL: {c.get('source_url', 'N/A')}<br/>"
+                f"Evidence File: {c.get('evidence_file', 'N/A')}<br/>"
+                f"Observed Date: {c.get('observed_date', 'N/A')}<br/>"
+                f"Analyst: {c.get('analyst_name', 'NAYADRA Analyst')}<br/>"
+                f"Last Reviewed: {c.get('last_reviewed_at', 'Not reviewed')}<br/>"
+                f"Analyst Note: {c.get('analyst_note', 'No analyst note recorded.')}<br/>"
+                f"Safe Handling: Do not visit suspicious links directly. Preserve URL, screenshot, timestamps, and source context before escalation.",
                 styles["Normal"]
             ))
             content.append(Spacer(1, 8))
