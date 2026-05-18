@@ -270,6 +270,8 @@ const [cyberForm, setCyberForm] = useState({
 });
 const [cyberSubmitting, setCyberSubmitting] = useState(false);
 const [cyberFilter, setCyberFilter] = useState("ALL");
+const [cyberSourceFilter, setCyberSourceFilter] = useState("ALL");
+
 
 
   const [fusionIntel, setFusionIntel] = useState(null);
@@ -1663,13 +1665,42 @@ const [opacity, setOpacity] = useState(0.6);
             </select>
           </div>
 
+          <div style={{ margin: "8px 0 10px 0" }}>
+            <select
+              value={cyberSourceFilter}
+              onChange={(e) => setCyberSourceFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "7px",
+                background: "#061014",
+                color: "#00ffaa",
+                border: "1px solid rgba(0,255,170,0.5)",
+                borderRadius: "8px"
+              }}
+            >
+              <option value="ALL">ALL SOURCES</option>
+              <option value="OPENPHISH_FEED">OPENPHISH FEED</option>
+              <option value="MANUAL">MANUAL OSINT / SCAM REPORTS</option>
+              <option value="DEMO">DEMO / TEST DATA</option>
+            </select>
+          </div>
+
           <div style={{ marginBottom: "10px", color: "#ffffff", fontSize: "13px" }}>
             Total Cyber Alerts: <strong>{cyberThreats?.events?.length ?? cyberThreats?.total ?? 0}</strong><br/>
             Visible Cyber Alerts: <strong>{
               (cyberThreats?.events || []).filter((item) => {
-                if (cyberFilter === "ALL") return true;
-                if (cyberFilter === "HIGH") return item.risk === "HIGH";
-                return (item.verification_status || item.status) === cyberFilter;
+                const statusMatch =
+                  cyberFilter === "ALL" ||
+                  (cyberFilter === "HIGH" && item.risk === "HIGH") ||
+                  ((item.verification_status || item.status) === cyberFilter);
+
+                const sourceMatch =
+                  cyberSourceFilter === "ALL" ||
+                  (cyberSourceFilter === "OPENPHISH_FEED" && item.type === "OPENPHISH_FEED") ||
+                  (cyberSourceFilter === "MANUAL" && item.type !== "OPENPHISH_FEED" && item.status !== "DEMO") ||
+                  (cyberSourceFilter === "DEMO" && (item.status === "DEMO" || item.confidence === "TEST DATA"));
+
+                return statusMatch && sourceMatch;
               }).length
             }</strong>
           </div>
@@ -1679,9 +1710,18 @@ const [opacity, setOpacity] = useState(0.6);
           ) : (
             (cyberThreats?.events || [])
               .filter((item) => {
-                if (cyberFilter === "ALL") return true;
-                if (cyberFilter === "HIGH") return item.risk === "HIGH";
-                return (item.verification_status || item.status) === cyberFilter;
+                const statusMatch =
+                  cyberFilter === "ALL" ||
+                  (cyberFilter === "HIGH" && item.risk === "HIGH") ||
+                  ((item.verification_status || item.status) === cyberFilter);
+
+                const sourceMatch =
+                  cyberSourceFilter === "ALL" ||
+                  (cyberSourceFilter === "OPENPHISH_FEED" && item.type === "OPENPHISH_FEED") ||
+                  (cyberSourceFilter === "MANUAL" && item.type !== "OPENPHISH_FEED" && item.status !== "DEMO") ||
+                  (cyberSourceFilter === "DEMO" && (item.status === "DEMO" || item.confidence === "TEST DATA"));
+
+                return statusMatch && sourceMatch;
               })
               .slice(0, 8)
               .map((item, idx) => (
