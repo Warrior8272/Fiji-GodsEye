@@ -19,6 +19,22 @@ export default function PatternReplayPanel() {
     return () => clearInterval(timer);
   }, []);
 
+  const jumpToPatternEvent = (event) => {
+    if (event.latitude == null || event.longitude == null) return;
+
+    window.dispatchEvent(new CustomEvent("locate-pattern-event", {
+      detail: {
+        lat: Number(event.latitude),
+        lon: Number(event.longitude),
+        vessel_name: event.vessel_name,
+        mmsi: event.mmsi,
+        risk: event.risk,
+        behavior_score: event.behavior_score,
+        detected_behaviors: event.detected_behaviors || []
+      }
+    }));
+  };
+
   return (
     <div style={{
       position: "fixed",
@@ -48,7 +64,8 @@ export default function PatternReplayPanel() {
         <div style={{ color: "#aaa" }}>No behavioural history in the last 24 hours.</div>
       ) : (
         events.slice(0, 8).map((event, index) => (
-          <div key={index} style={{
+          <div key={index} onClick={() => jumpToPatternEvent(event)} title="Click to zoom to this event" style={{
+            cursor: "pointer",
             padding: "8px",
             marginBottom: "8px",
             borderRadius: "8px",

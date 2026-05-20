@@ -226,6 +226,24 @@ function MiniStat({ label, value }) {
   );
 }
 
+
+function LocatePatternEvent() {
+  const map = useMap();
+
+  useEffect(() => {
+    const handler = (e) => {
+      const d = e.detail || {};
+      if (typeof d.lat !== "number" || typeof d.lon !== "number") return;
+      map.flyTo([d.lat, d.lon], 13, { duration: 1.2 });
+    };
+
+    window.addEventListener("locate-pattern-event", handler);
+    return () => window.removeEventListener("locate-pattern-event", handler);
+  }, [map]);
+
+  return null;
+}
+
 export default function App() {
   const [selectedVessel, setSelectedVessel] = useState(null);
   const [vesselProfile, setVesselProfile] = useState(null);
@@ -1352,6 +1370,7 @@ const [opacity, setOpacity] = useState(0.6);
           scrollWheelZoom={true}
           style={{ height: "100vh", width: "100%" }}
          >
+            <LocatePatternEvent />
 
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {showSentinel && (
