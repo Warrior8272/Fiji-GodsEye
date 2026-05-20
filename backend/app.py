@@ -2394,6 +2394,65 @@ def anthas_night_stop_pdf_report():
     return send_file(output_file, as_attachment=True, download_name="nayadra_anthas_night_stop_report.pdf")
 
 
+
+# --- NA.YADRA Behavioural History 24h ---
+@app.route("/api/behavioral-history/24h", methods=["GET"])
+def behavioral_history_24h_api():
+    from flask import jsonify
+    import json, os
+    from datetime import datetime, timezone, timedelta
+    from zoneinfo import ZoneInfo
+
+    history_file = os.path.join(
+        os.path.dirname(__file__),
+        "intelligence",
+        "behavioral_history.json"
+    )
+
+    if not os.path.exists(history_file):
+        return jsonify([])
+
+    with open(history_file, "r") as f:
+        history = json.load(f)
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    results = []
+
+    for event in history:
+        raw_ts = event.get("timestamp")
+        if not raw_ts:
+            continue
+
+        try:
+            ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        if ts < cutoff:
+            continue
+
+        fiji_time = ts.astimezone(ZoneInfo("Pacific/Fiji"))
+
+        results.append({
+            "event_type": "BEHAVIOURAL_HISTORY_24H",
+            "vessel_name": event.get("vessel_name"),
+            "mmsi": event.get("mmsi"),
+            "risk": event.get("risk"),
+            "behavior_score": event.get("behavior_score"),
+            "timestamp_utc": ts.isoformat(),
+            "fiji_time": fiji_time.isoformat(),
+            "latitude": event.get("latitude"),
+            "longitude": event.get("longitude"),
+            "detected_behaviors": event.get("detected_behaviors", []),
+        })
+
+    results.sort(key=lambda x: x["fiji_time"], reverse=True)
+    return jsonify(results)
+
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
 
