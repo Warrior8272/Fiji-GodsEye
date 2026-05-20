@@ -9,6 +9,8 @@ import {
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import BehavioralPanel from "./components/BehavioralPanel";
+import BehavioralEventMarkers from "./components/BehavioralEventMarkers";
 
 
 const coverageZones = [
@@ -348,6 +350,7 @@ const [showSentinel, setShowSentinel] = useState(true);
     fetchHealth();
     const timer = setInterval(fetchHealth, 60000);
     return () => clearInterval(timer);
+      <BehavioralPanel />
   }, []);
 
 
@@ -1354,7 +1357,8 @@ const [opacity, setOpacity] = useState(0.6);
           />
         )}
 
-          <MapOverlays />
+          <BehavioralEventMarkers />
+            <MapOverlays />
         <MapLegend />
         <LastUpdatedLabel />
 

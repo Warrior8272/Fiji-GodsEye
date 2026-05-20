@@ -46,7 +46,7 @@ live_vessels = []
 
 
 def get_scored_vessels():
-    vessels_data = list_vessels(100)
+    vessels_data = list_vessels(500)
     alerts_data = []
     correlated = correlate_vessels_alerts(
         vessels_data, alerts_data, radius_km=80)
@@ -1821,6 +1821,579 @@ def api_update_cyber_alert_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+
+# --- NAYADRA Behavioral Maritime Intelligence Engine ---
+@app.route("/api/behavioral-events", methods=["GET"])
+def behavioral_events_api():
+    import json, os
+    from flask import jsonify
+    from behavioral_engine import generate_behavioral_events
+
+    data_file = os.path.join(os.path.dirname(__file__), "ais_live.json")
+
+    if not os.path.exists(data_file):
+        return jsonify([])
+
+    with open(data_file, "r") as f:
+        vessels = json.load(f)
+
+    if isinstance(vessels, dict):
+        vessels = list(vessels.values())
+
+    events = generate_behavioral_events(vessels)
+    return jsonify(events)
+
+
+# --- NAYADRA 24-Hour Night Movement Recall ---
+@app.route("/api/night-movement/24h", methods=["GET"])
+def night_movement_24h_api():
+    import json, os
+    from datetime import datetime, timezone, timedelta
+    from zoneinfo import ZoneInfo
+    from flask import jsonify
+
+    history_file = os.path.join(os.path.dirname(__file__), "intelligence", "behavioral_history.json")
+
+    if not os.path.exists(history_file):
+        return jsonify([])
+
+    with open(history_file, "r") as f:
+        history = json.load(f)
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    results = []
+
+    for event in history:
+        if "NIGHT_MOVEMENT" not in event.get("detected_behaviors", []):
+            continue
+
+        raw_ts = event.get("timestamp")
+        if not raw_ts:
+            continue
+
+        try:
+            ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        if ts < cutoff:
+            continue
+
+        results.append({
+            "event_type": "NIGHT_MOVEMENT_24H",
+            "vessel_name": event.get("vessel_name"),
+            "mmsi": event.get("mmsi"),
+            "timestamp_utc": ts.isoformat(),
+            "fiji_time": ts.astimezone(ZoneInfo("Pacific/Fiji")).isoformat(),
+            "latitude": event.get("latitude"),
+            "longitude": event.get("longitude"),
+            "risk": event.get("risk"),
+            "behavior_score": event.get("behavior_score"),
+            "detected_behaviors": event.get("detected_behaviors", [])
+        })
+
+    results.sort(key=lambda x: x["fiji_time"], reverse=True)
+    return jsonify(results)
+
+
+# --- NAYADRA Night Movement Text Report ---
+@app.route("/api/night-movement/report", methods=["GET"])
+def night_movement_report():
+    from flask import Response
+    import json, os
+    from datetime import datetime, timezone, timedelta
+    from zoneinfo import ZoneInfo
+
+    history_file = os.path.join(os.path.dirname(__file__), "intelligence", "behavioral_history.json")
+
+    if not os.path.exists(history_file):
+        data = []
+    else:
+        with open(history_file, "r") as f:
+            history = json.load(f)
+
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        data = []
+
+        for event in history:
+            if "NIGHT_MOVEMENT" not in event.get("detected_behaviors", []):
+                continue
+
+            raw_ts = event.get("timestamp")
+            if not raw_ts:
+                continue
+
+            try:
+                ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+            except Exception:
+                continue
+
+            if ts < cutoff:
+                continue
+
+            data.append({
+                "vessel_name": event.get("vessel_name"),
+                "mmsi": event.get("mmsi"),
+                "risk": event.get("risk"),
+                "behavior_score": event.get("behavior_score"),
+                "fiji_time": ts.astimezone(ZoneInfo("Pacific/Fiji")).isoformat(),
+                "latitude": event.get("latitude"),
+                "longitude": event.get("longitude"),
+                "detected_behaviors": event.get("detected_behaviors", [])
+            })
+
+    lines = []
+    lines.append("NAYADRA NIGHT MOVEMENT REPORT")
+    lines.append("Pacific Maritime Intelligence Platform")
+    lines.append("=" * 45)
+    lines.append("")
+
+    if not data:
+        lines.append("No valid Fiji-time night movement events detected in the last 24 hours.")
+    else:
+        for i, e in enumerate(data, 1):
+            lines.append(f"{i}. Vessel: {e.get('vessel_name')}")
+            lines.append(f"   MMSI: {e.get('mmsi')}")
+            lines.append(f"   Risk: {e.get('risk')}")
+            lines.append(f"   Score: {e.get('behavior_score')}")
+            lines.append(f"   Fiji Time: {e.get('fiji_time')}")
+            lines.append(f"   Latitude: {e.get('latitude')}")
+            lines.append(f"   Longitude: {e.get('longitude')}")
+            lines.append(f"   Behaviors: {', '.join(e.get('detected_behaviors', []))}")
+            lines.append("")
+
+    return Response(
+        "\n".join(lines),
+        mimetype="text/plain",
+        headers={"Content-Disposition": "attachment; filename=nayadra_night_movement_report.txt"}
+    )
+
+
+# --- NAYADRA Possible Night Stop Report ---
+@app.route("/api/night-stop/report", methods=["GET"])
+def possible_night_stop_report():
+    from flask import Response
+    import json, os
+    from datetime import datetime, timezone, timedelta
+    from zoneinfo import ZoneInfo
+
+    history_file = os.path.join(os.path.dirname(__file__), "intelligence", "behavioral_history.json")
+
+    if not os.path.exists(history_file):
+        history = []
+    else:
+        with open(history_file, "r") as f:
+            history = json.load(f)
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    events = []
+
+    for event in history:
+        behaviors = event.get("detected_behaviors", [])
+
+        if "POSSIBLE_NIGHT_STOP_LOCATION" not in behaviors:
+            continue
+
+        raw_ts = event.get("timestamp")
+        if not raw_ts:
+            continue
+
+        try:
+            ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        if ts < cutoff:
+            continue
+
+        events.append({
+            "vessel_name": event.get("vessel_name"),
+            "mmsi": event.get("mmsi"),
+            "risk": event.get("risk"),
+            "behavior_score": event.get("behavior_score"),
+            "fiji_time": ts.astimezone(ZoneInfo("Pacific/Fiji")).isoformat(),
+            "latitude": event.get("latitude"),
+            "longitude": event.get("longitude"),
+            "detected_behaviors": behaviors
+        })
+
+    # Deduplicate repeated same-vessel/same-location events
+    deduped = {}
+    for e in events:
+        key = (
+            e.get("mmsi"),
+            round(float(e.get("latitude") or 0), 4),
+            round(float(e.get("longitude") or 0), 4),
+        )
+        existing = deduped.get(key)
+        if existing is None or e.get("behavior_score", 0) > existing.get("behavior_score", 0):
+            deduped[key] = e
+
+    events = list(deduped.values())
+    events.sort(key=lambda x: x["fiji_time"], reverse=True)
+
+    lines = []
+    lines.append("NAYADRA POSSIBLE NIGHT STOP REPORT")
+    lines.append("Pacific Maritime Intelligence Platform")
+    lines.append("=" * 55)
+    lines.append("")
+    lines.append("Purpose:")
+    lines.append("This report lists vessels detected as possible night-time offshore stop or loitering events within the last 24 hours using Fiji local time.")
+    lines.append("")
+    lines.append("Important Note:")
+    lines.append("These are intelligence leads for analyst review only. A detection does not confirm criminal activity.")
+    lines.append("")
+
+    if not events:
+        lines.append("No possible night-time offshore stop events detected in the last 24 hours.")
+    else:
+        for i, e in enumerate(events, 1):
+            lines.append(f"{i}. Vessel: {e.get('vessel_name')}")
+            lines.append(f"   MMSI: {e.get('mmsi')}")
+            lines.append(f"   Risk: {e.get('risk')}")
+            lines.append(f"   Behaviour Score: {e.get('behavior_score')}")
+            lines.append(f"   Fiji Time: {e.get('fiji_time')}")
+            lines.append(f"   Latitude: {e.get('latitude')}")
+            lines.append(f"   Longitude: {e.get('longitude')}")
+            lines.append(f"   Behaviours: {', '.join(e.get('detected_behaviors', []))}")
+            lines.append("")
+            lines.append("   Analyst Explanation:")
+            lines.append("   This coordinate may represent a possible night-time offshore stop or loitering location because the vessel was detected slow/stationary outside a recognised port zone during Fiji night hours.")
+            lines.append("")
+
+    return Response(
+        "\n".join(lines),
+        mimetype="text/plain",
+        headers={"Content-Disposition": "attachment; filename=nayadra_possible_night_stop_report.txt"}
+    )
+
+
+# --- NAYADRA Possible Night Stop PDF Report ---
+@app.route("/api/night-stop/report/pdf", methods=["GET"])
+def possible_night_stop_pdf_report():
+    from flask import send_file
+    import json, os
+    from datetime import datetime, timezone, timedelta
+    from zoneinfo import ZoneInfo
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+
+    base_dir = os.path.dirname(__file__)
+    history_file = os.path.join(base_dir, "intelligence", "behavioral_history.json")
+    logo_file = os.path.join(base_dir, "reports", "nayadra_logo.png")
+    output_file = os.path.join(base_dir, "reports", "nayadra_possible_night_stop_report.pdf")
+
+    history = []
+    if os.path.exists(history_file):
+        with open(history_file, "r") as f:
+            history = json.load(f)
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    events = []
+
+    for event in history:
+        behaviors = event.get("detected_behaviors", [])
+        if "POSSIBLE_NIGHT_STOP_LOCATION" not in behaviors:
+            continue
+
+        raw_ts = event.get("timestamp")
+        if not raw_ts:
+            continue
+
+        try:
+            ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        if ts < cutoff:
+            continue
+
+        events.append({
+            "vessel_name": event.get("vessel_name"),
+            "mmsi": event.get("mmsi"),
+            "risk": event.get("risk"),
+            "behavior_score": event.get("behavior_score"),
+            "fiji_time": ts.astimezone(ZoneInfo("Pacific/Fiji")).strftime("%Y-%m-%d %H:%M:%S %Z"),
+            "latitude": event.get("latitude"),
+            "longitude": event.get("longitude"),
+            "detected_behaviors": ", ".join(behaviors),
+        })
+
+    deduped = {}
+    for e in events:
+        key = (e.get("mmsi"), round(float(e.get("latitude") or 0), 4), round(float(e.get("longitude") or 0), 4))
+        old = deduped.get(key)
+        if old is None or e.get("behavior_score", 0) > old.get("behavior_score", 0):
+            deduped[key] = e
+    events = list(deduped.values())
+
+    doc = SimpleDocTemplate(output_file, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=30, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    title = ParagraphStyle("Title", parent=styles["Title"], fontSize=18, leading=22, alignment=1)
+    body = ParagraphStyle("Body", parent=styles["BodyText"], fontSize=10, leading=13)
+
+    story = []
+
+    if os.path.exists(logo_file):
+        story.append(Image(logo_file, width=2.4*inch, height=2.4*inch))
+        story.append(Spacer(1, 8))
+
+    story.append(Paragraph("NA.YADRA Possible Night Stop Report", title))
+    story.append(Paragraph("Pacific Maritime Intelligence Platform", styles["Heading3"]))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("This report lists possible night-time offshore stop or loitering events within the last 24 hours using Fiji local time.", body))
+    story.append(Paragraph("Important: These are intelligence leads for analyst review only. A detection does not confirm criminal activity.", body))
+    story.append(Spacer(1, 12))
+
+    if not events:
+        story.append(Paragraph("No possible night-time offshore stop events detected in the last 24 hours.", body))
+    else:
+        for i, e in enumerate(events, 1):
+            data = [
+                ["Field", "Details"],
+                ["Vessel", str(e.get("vessel_name"))],
+                ["MMSI", str(e.get("mmsi"))],
+                ["Risk", str(e.get("risk"))],
+                ["Behaviour Score", str(e.get("behavior_score"))],
+                ["Fiji Time", str(e.get("fiji_time"))],
+                ["Latitude", str(e.get("latitude"))],
+                ["Longitude", str(e.get("longitude"))],
+                ["Behaviours", str(e.get("detected_behaviors"))],
+            ]
+            table = Table(data, colWidths=[1.6*inch, 4.7*inch])
+            table.setStyle(TableStyle([
+                ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#8B0000")),
+                ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+                ("GRID", (0,0), (-1,-1), 0.4, colors.grey),
+                ("BACKGROUND", (0,1), (-1,-1), colors.HexColor("#F7F7F7")),
+                ("FONTSIZE", (0,0), (-1,-1), 8.5),
+                ("VALIGN", (0,0), (-1,-1), "TOP"),
+            ]))
+            story.append(Paragraph(f"Event {i}", styles["Heading2"]))
+            story.append(table)
+            story.append(Spacer(1, 8))
+            story.append(Paragraph("Analyst Explanation: This coordinate may represent a possible night-time offshore stop or loitering location because the vessel was detected slow/stationary outside a recognised port zone during Fiji night hours.", body))
+            story.append(Spacer(1, 12))
+
+    story.append(Paragraph("© 2026 NA.YADRA Prototype - All Rights Reserved", styles["BodyText"]))
+    doc.build(story)
+
+    return send_file(output_file, as_attachment=True, download_name="nayadra_possible_night_stop_report.pdf")
+
+
+
+# --- NA.YADRA ARROW Night Movement PDF Report ---
+@app.route("/api/night-movement/arrow/report/pdf", methods=["GET"])
+def arrow_night_movement_pdf_report():
+    from flask import send_file
+    import os
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+
+    base_dir = os.path.dirname(__file__)
+    logo_file = os.path.join(base_dir, "reports", "nayadra_logo.png")
+    output_file = os.path.join(base_dir, "reports", "nayadra_arrow_night_movement_report.pdf")
+
+    doc = SimpleDocTemplate(output_file, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=30, bottomMargin=40)
+    styles = getSampleStyleSheet()
+
+    title = ParagraphStyle("Title", parent=styles["Title"], fontSize=18, leading=22, alignment=1)
+    h2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=13, leading=16, spaceBefore=10)
+    body = ParagraphStyle("Body", parent=styles["BodyText"], fontSize=10, leading=14)
+
+    story = []
+
+    if os.path.exists(logo_file):
+        story.append(Image(logo_file, width=1.8*inch, height=1.8*inch))
+        story.append(Spacer(1, 8))
+
+    story.append(Paragraph("NA.YADRA Night Movement Intelligence Report", title))
+    story.append(Paragraph("Pacific Maritime Intelligence Platform", styles["Heading3"]))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph(
+        "This report records a night movement detection for vessel ARROW near the Lautoka Port / Vuda Area. "
+        "The event is generated from the NA.YADRA behavioural maritime monitoring engine.",
+        body
+    ))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("Event Summary", h2))
+
+    data = [
+        ["Field", "Details"],
+        ["Vessel", "ARROW"],
+        ["MMSI", "319245300"],
+        ["Risk", "LOW"],
+        ["Behaviour Score", "20"],
+        ["Detected Behaviour", "NIGHT_MOVEMENT"],
+        ["Fiji Time", "2026-05-21 01:51:54 FJT"],
+        ["UTC Time", "2026-05-20 13:51:54 UTC"],
+        ["Nearest Port", "Lautoka Port / Vuda Area"],
+        ["Distance from Port", "6.75 nautical miles"],
+        ["Latitude", "-17.64604166666667"],
+        ["Longitude", "177.32996"],
+    ]
+
+    table = Table(data, colWidths=[1.8*inch, 4.6*inch])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#8B0000")),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("GRID", (0,0), (-1,-1), 0.4, colors.grey),
+        ("BACKGROUND", (0,1), (-1,-1), colors.HexColor("#F7F7F7")),
+        ("VALIGN", (0,0), (-1,-1), "TOP"),
+        ("FONTSIZE", (0,0), (-1,-1), 9),
+    ]))
+
+    story.append(table)
+    story.append(Spacer(1, 14))
+
+    story.append(Paragraph("Analyst Explanation", h2))
+    story.append(Paragraph(
+        "This event shows vessel ARROW detected during Fiji night-time movement outside the immediate Lautoka Port / Vuda Area. "
+        "The LOW risk rating means the system has identified movement during night hours, but there is not enough supporting behaviour "
+        "to classify it as suspicious by itself.",
+        body
+    ))
+
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(
+        "The coordinate listed above marks the vessel position at the time of detection. If the vessel later slows, stops, repeats this route, "
+        "or operates near isolated areas or foreign vessels, the system can escalate the event into a higher-risk behavioural alert.",
+        body
+    ))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(
+        "Important Note: This report is an intelligence lead for analyst review only. A detection does not confirm criminal activity.",
+        body
+    ))
+
+    story.append(Spacer(1, 14))
+    story.append(Paragraph("© 2026 NA.YADRA Prototype - All Rights Reserved", styles["BodyText"]))
+
+    doc.build(story)
+
+    return send_file(output_file, as_attachment=True, download_name="nayadra_arrow_night_movement_report.pdf")
+
+
+
+# --- NA.YADRA ANTHAS Night Stop PDF Report ---
+@app.route("/api/night-stop/anthas/report/pdf", methods=["GET"])
+def anthas_night_stop_pdf_report():
+    from flask import send_file
+    import os
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+
+    base_dir = os.path.dirname(__file__)
+    logo_file = os.path.join(base_dir, "reports", "nayadra_logo.png")
+    output_file = os.path.join(base_dir, "reports", "nayadra_anthas_night_stop_report.pdf")
+
+    doc = SimpleDocTemplate(output_file, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=30, bottomMargin=40)
+    styles = getSampleStyleSheet()
+
+    title = ParagraphStyle("Title", parent=styles["Title"], fontSize=18, leading=22, alignment=1)
+    h2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=13, leading=16, spaceBefore=10)
+    body = ParagraphStyle("Body", parent=styles["BodyText"], fontSize=10, leading=14)
+
+    story = []
+
+    if os.path.exists(logo_file):
+        story.append(Image(logo_file, width=1.8*inch, height=1.8*inch))
+        story.append(Spacer(1, 8))
+
+    story.append(Paragraph("NA.YADRA Possible Night Stop Intelligence Report", title))
+    story.append(Paragraph("Pacific Maritime Intelligence Platform", styles["Heading3"]))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph(
+        "This report records a possible night-time offshore stop event for vessel ANTHAS near Denarau / Nadi Waters. "
+        "The event is generated from the NA.YADRA behavioural maritime monitoring engine.",
+        body
+    ))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("Event Summary", h2))
+
+    data = [
+        ["Field", "Details"],
+        ["Vessel", "ANTHAS"],
+        ["MMSI", "253000026"],
+        ["Risk", "HIGH"],
+        ["Behaviour Score", "90"],
+        ["Detected Behaviours", "OFFSHORE_LOW_SPEED_OR_STOPPED, NIGHT_OFFSHORE_STOP_INDICATOR, POSSIBLE_NIGHT_STOP_LOCATION, STOPPED_OUTSIDE_PORT_ZONE"],
+        ["Fiji Time", "2026-05-21 01:51:54 FJT"],
+        ["UTC Time", "2026-05-20 13:51:54 UTC"],
+        ["Nearest Port", "Denarau / Nadi Waters"],
+        ["Distance from Port", "3.08 nautical miles"],
+        ["Speed", "0.0 knots"],
+        ["Latitude", "-17.722289999999997"],
+        ["Longitude", "177.37288666666666"],
+    ]
+
+    table = Table(data, colWidths=[1.8*inch, 4.6*inch])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#8B0000")),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("GRID", (0,0), (-1,-1), 0.4, colors.grey),
+        ("BACKGROUND", (0,1), (-1,-1), colors.HexColor("#F7F7F7")),
+        ("VALIGN", (0,0), (-1,-1), "TOP"),
+        ("FONTSIZE", (0,0), (-1,-1), 8.5),
+    ]))
+
+    story.append(table)
+    story.append(Spacer(1, 14))
+
+    story.append(Paragraph("Analyst Explanation", h2))
+    story.append(Paragraph(
+        "This event shows ANTHAS detected slow or stationary outside a recognised port zone during Fiji night hours. "
+        "Because the vessel was recorded at 0.0 knots and outside the Denarau / Nadi port radius, the system escalated the behaviour "
+        "as a possible night-time offshore stop location.",
+        body
+    ))
+
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(
+        "The HIGH risk rating is based on multiple combined behaviours: low speed or stopped offshore, night-time stop indicator, "
+        "possible night stop location, and stopped outside port zone. This should be reviewed by an analyst against vessel history, "
+        "route pattern, ownership, port call information, and any supporting intelligence.",
+        body
+    ))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(
+        "Important Note: This report is an intelligence lead for analyst review only. A detection does not confirm criminal activity.",
+        body
+    ))
+
+    story.append(Spacer(1, 14))
+    story.append(Paragraph("© 2026 NA.YADRA Prototype - All Rights Reserved", styles["BodyText"]))
+
+    doc.build(story)
+
+    return send_file(output_file, as_attachment=True, download_name="nayadra_anthas_night_stop_report.pdf")
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
 
@@ -1929,3 +2502,7 @@ def get_raw_vessels():
 # NAYADRA / GOD'S EYE - Vessel Profile Endpoint
 # Safe endpoint for selected vessel intelligence profile
 # ============================================================
+
+
+
+
