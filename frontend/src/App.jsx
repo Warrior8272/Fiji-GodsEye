@@ -11,6 +11,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import BehavioralPanel from "./components/BehavioralPanel";
 import BehavioralEventMarkers from "./components/BehavioralEventMarkers";
+import FloatingReportsPanel from "./components/FloatingReportsPanel";
 
 
 const coverageZones = [
@@ -1342,6 +1343,7 @@ const [opacity, setOpacity] = useState(0.6);
           </div>
         </div>
 
+          <FloatingReportsPanel />
         <MapContainer
           center={[-17.7134, 178.0650]}   // Fiji center
           zoom={7}

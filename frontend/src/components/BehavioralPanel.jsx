@@ -68,6 +68,23 @@ export default function BehavioralPanel() {
           </div>
         ))
       )}
+
+      <div style={{ marginTop: "12px", borderTop: "1px solid rgba(255,255,255,0.2)", paddingTop: "10px" }}>
+        <h4 style={{ margin: "0 0 8px 0", color: "#66fcf1" }}>PDF Reports</h4>
+
+        <button onClick={() => window.open("http://127.0.0.1:5000/api/night-stop/report/pdf", "_blank")} style={{ width: "100%", marginBottom: "6px", padding: "7px", borderRadius: "8px" }}>
+          Possible Night Stop PDF
+        </button>
+
+        <button onClick={() => window.open("http://127.0.0.1:5000/api/night-stop/anthas/report/pdf", "_blank")} style={{ width: "100%", marginBottom: "6px", padding: "7px", borderRadius: "8px" }}>
+          ANTHAS Night Stop PDF
+        </button>
+
+        <button onClick={() => window.open("http://127.0.0.1:5000/api/night-movement/arrow/report/pdf", "_blank")} style={{ width: "100%", padding: "7px", borderRadius: "8px" }}>
+          ARROW Night Movement PDF
+        </button>
+      </div>
+
     </div>
   );
 }
