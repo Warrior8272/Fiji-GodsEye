@@ -30,7 +30,8 @@ export default function PatternReplayPanel() {
         mmsi: event.mmsi,
         risk: event.risk,
         behavior_score: event.behavior_score,
-        detected_behaviors: event.detected_behaviors || []
+        detected_behaviors: event.detected_behaviors || [],
+        fiji_time: event.fiji_time
       }
     }));
   };

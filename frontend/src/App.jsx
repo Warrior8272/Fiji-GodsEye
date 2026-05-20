@@ -227,24 +227,28 @@ function MiniStat({ label, value }) {
 }
 
 
-function LocatePatternEvent() {
+function LocatePatternEvent({ setSelectedPatternEvent }) {
   const map = useMap();
 
   useEffect(() => {
     const handler = (e) => {
       const d = e.detail || {};
       if (typeof d.lat !== "number" || typeof d.lon !== "number") return;
+
+      setSelectedPatternEvent(d);
       map.flyTo([d.lat, d.lon], 13, { duration: 1.2 });
     };
 
     window.addEventListener("locate-pattern-event", handler);
     return () => window.removeEventListener("locate-pattern-event", handler);
-  }, [map]);
+  }, [map, setSelectedPatternEvent]);
 
   return null;
 }
 
 export default function App() {
+  const [selectedPatternEvent, setSelectedPatternEvent] = useState(null);
+
   const [selectedVessel, setSelectedVessel] = useState(null);
   const [vesselProfile, setVesselProfile] = useState(null);
   const [validationStatus, setValidationStatus] = useState("Pending");
@@ -1370,7 +1374,7 @@ const [opacity, setOpacity] = useState(0.6);
           scrollWheelZoom={true}
           style={{ height: "100vh", width: "100%" }}
          >
-            <LocatePatternEvent />
+            <LocatePatternEvent setSelectedPatternEvent={setSelectedPatternEvent} />
 
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {showSentinel && (
@@ -1381,6 +1385,32 @@ const [opacity, setOpacity] = useState(0.6);
         )}
 
           <BehavioralEventMarkers />
+
+            {selectedPatternEvent && (
+              <CircleMarker
+                center={[selectedPatternEvent.lat, selectedPatternEvent.lon]}
+                radius={16}
+                pathOptions={{
+                  color: selectedPatternEvent.risk === "HIGH" ? "red" : selectedPatternEvent.risk === "MEDIUM" ? "orange" : "cyan",
+                  fillColor: selectedPatternEvent.risk === "HIGH" ? "red" : selectedPatternEvent.risk === "MEDIUM" ? "orange" : "cyan",
+                  fillOpacity: 0.65,
+                  weight: 4
+                }}
+              >
+                <Popup>
+                  <strong>Pattern-of-Life Event</strong><br />
+                  Vessel: {selectedPatternEvent.vessel_name || "UNKNOWN"}<br />
+                  MMSI: {selectedPatternEvent.mmsi || "N/A"}<br />
+                  Risk: {selectedPatternEvent.risk}<br />
+                  Score: {selectedPatternEvent.behavior_score}<br />
+                  Fiji Time: {selectedPatternEvent.fiji_time || "N/A"}<br />
+                  Behaviours: {(selectedPatternEvent.detected_behaviors || []).join(", ")}<br />
+                  Lat: {selectedPatternEvent.lat}<br />
+                  Lon: {selectedPatternEvent.lon}<br />
+                </Popup>
+              </CircleMarker>
+            )}
+
             <MapOverlays />
         <MapLegend />
         <LastUpdatedLabel />
